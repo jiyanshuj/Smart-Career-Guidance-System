@@ -1,100 +1,161 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Code, Brain, Target, BookOpen } from 'lucide-react';
 
-const AnimatedBackground = () => {
-  const [stars, setStars] = React.useState([]);
-  const [mouse, setMouse] = React.useState({ x: 0, y: 0 });
+// Floating Stars Background Component
+const FloatingStarsBackground = () => {
+  const canvasRef = useRef(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const starsRef = useRef([]);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const animationRef = useRef(null);
 
-  React.useEffect(() => {
-    const newStars = Array.from({ length: 100 }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      size: Math.random() * 2 + 1,
-    }));
-    setStars(newStars);
+  useEffect(() => {
+    const updateDimensions = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  useEffect(() => {
+    if (!dimensions.width || !dimensions.height) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    
+    // Initialize stars only once
+    if (starsRef.current.length === 0) {
+      starsRef.current = Array.from({ length: 150 }, () => ({
+        x: Math.random() * dimensions.width,
+        y: Math.random() * dimensions.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 2.5 + 0.5,
+        opacity: Math.random() * 0.5 + 0.3,
+        twinkleSpeed: Math.random() * 0.02 + 0.01
+      }));
+    }
 
     const handleMouseMove = (e) => {
-      setMouse({ x: e.clientX, y: e.clientY });
+      mouseRef.current = { x: e.clientX, y: e.clientY };
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
-  const getConnectedStars = () => {
-    const connections = [];
-    const maxDistance = 150;
+    // Animation loop
+    const animate = () => {
+      ctx.clearRect(0, 0, dimensions.width, dimensions.height);
 
-    stars.forEach((star) => {
-      const dx = mouse.x - star.x;
-      const dy = mouse.y - star.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      // Update and draw stars
+      starsRef.current.forEach((star) => {
+        // Move stars
+        star.x += star.vx;
+        star.y += star.vy;
 
-      if (distance < maxDistance) {
-        connections.push({
-          from: mouse,
-          to: star,
-          opacity: (1 - distance / maxDistance) * 0.5,
-        });
-      }
-    });
+        // Wrap around screen edges
+        if (star.x < 0) star.x = dimensions.width;
+        if (star.x > dimensions.width) star.x = 0;
+        if (star.y < 0) star.y = dimensions.height;
+        if (star.y > dimensions.height) star.y = 0;
 
-    for (let i = 0; i < stars.length; i++) {
-      for (let j = i + 1; j < stars.length; j++) {
-        const dx = stars[i].x - stars[j].x;
-        const dy = stars[i].y - stars[j].y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        // Twinkle effect
+        star.opacity += star.twinkleSpeed;
+        if (star.opacity > 0.8 || star.opacity < 0.2) {
+          star.twinkleSpeed *= -1;
+        }
 
-        if (distance < 100) {
-          connections.push({
-            from: stars[i],
-            to: stars[j],
-            opacity: (1 - distance / 100) * 0.2,
-          });
+        // Draw star
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+        ctx.fill();
+      });
+
+      // Draw connections between nearby stars
+      const maxDistance = 120;
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i < starsRef.current.length; i++) {
+        for (let j = i + 1; j < starsRef.current.length; j++) {
+          const star1 = starsRef.current[i];
+          const star2 = starsRef.current[j];
+          
+          const dx = star1.x - star2.x;
+          const dy = star1.y - star2.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < maxDistance) {
+            const opacity = (1 - distance / maxDistance) * 0.3;
+            ctx.strokeStyle = `rgba(59, 130, 246, ${opacity})`; // Blue color
+            ctx.beginPath();
+            ctx.moveTo(star1.x, star1.y);
+            ctx.lineTo(star2.x, star2.y);
+            ctx.stroke();
+          }
         }
       }
-    }
 
-    return connections;
-  };
+      // Draw connections from mouse to nearby stars
+      const mouseMaxDistance = 150;
+      starsRef.current.forEach((star) => {
+        const dx = mouseRef.current.x - star.x;
+        const dy = mouseRef.current.y - star.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-  const connections = getConnectedStars();
+        if (distance < mouseMaxDistance) {
+          const opacity = (1 - distance / mouseMaxDistance) * 0.5;
+          ctx.strokeStyle = `rgba(168, 85, 247, ${opacity})`; // Purple color
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(mouseRef.current.x, mouseRef.current.y);
+          ctx.lineTo(star.x, star.y);
+          ctx.stroke();
+
+          // Add glow effect to connected stars
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.size + 2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(168, 85, 247, ${opacity * 0.3})`;
+          ctx.fill();
+        }
+      });
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [dimensions]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      <svg className="w-full h-full">
-        {connections.map((conn, i) => (
-          <line
-            key={i}
-            x1={conn.from.x}
-            y1={conn.from.y}
-            x2={conn.to.x}
-            y2={conn.to.y}
-            stroke="rgba(255, 255, 255, 0.3)"
-            strokeWidth="1"
-            opacity={conn.opacity}
-          />
-        ))}
-        
-        {stars.map((star, i) => (
-          <circle
-            key={i}
-            cx={star.x}
-            cy={star.y}
-            r={star.size}
-            fill="white"
-            opacity="0.6"
-          />
-        ))}
-      </svg>
-    </div>
+    <canvas
+      ref={canvasRef}
+      width={dimensions.width}
+      height={dimensions.height}
+      className="fixed inset-0 pointer-events-none z-0"
+      style={{ background: 'transparent' }}
+    />
   );
 };
 
 const HomePage = ({ onStartQuiz }) => {
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      <AnimatedBackground />
+      <FloatingStarsBackground />
+      
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-20">

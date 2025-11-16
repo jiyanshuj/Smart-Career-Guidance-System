@@ -5,9 +5,10 @@ import os
 import json
 import time
 import google.generativeai as genai
-from db import init_db, get_db_connection
-from user import User
+from db import db, init_db
+from user_supabase import User
 from dotenv import load_dotenv
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -21,7 +22,7 @@ if not GEMINI_API_KEY:
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Initialize database
+# Initialize database (just prints message for Supabase)
 init_db()
 
 # Rate limiting for gemini-2.0-flash-lite (30 RPM = 2 seconds between calls)
@@ -121,7 +122,7 @@ def require_auth(f):
 
 @app.route('/api/auth/sync', methods=['POST'])
 def sync_user():
-    """Sync Clerk user to local database"""
+    """Sync Clerk user to Supabase database"""
     data = request.json
     clerk_id = data.get('clerk_id')
     email = data.get('email')
@@ -181,43 +182,54 @@ def generate_quiz():
             print(f"❌ Only generated {len(all_questions)} questions, need at least 20")
             return jsonify({'error': 'Failed to generate sufficient questions. Please try again in 30 seconds.'}), 500
 
-        # Store quiz session
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Create quiz session in Supabase
+        quiz_session = db.create_quiz_session(
+            user_id=user['id'],
+            difficulty=difficulty,
+            language=language,
+            supports_oop=supports_oop
+        )
 
-        cursor.execute('''
-            INSERT INTO quiz_sessions (user_id, difficulty, language, supports_oop, started_at)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user['id'], difficulty, language, supports_oop, datetime.now()))
+        if not quiz_session:
+            return jsonify({'error': 'Failed to create quiz session'}), 500
 
-        quiz_id = cursor.lastrowid
+        quiz_id = quiz_session['id']
 
-        # Store questions and update with actual database IDs
-        questions_with_db_ids = []
+        # Prepare questions for bulk insert
+        questions_to_insert = []
         for q in all_questions:
-            cursor.execute('''
-                INSERT INTO quiz_questions (quiz_id, question, options, correct_answer, category)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (quiz_id, q['question'], json.dumps(q['options']), q['correct_answer'], q['category']))
-
-            # Get the actual database ID for this question
-            db_id = cursor.lastrowid
-
-            # Create question object with database ID
-            questions_with_db_ids.append({
-                'id': db_id,  # Use database ID instead of generated ID
+            questions_to_insert.append({
+                'quiz_id': quiz_id,
                 'question': q['question'],
-                'options': q['options'],
+                'options': json.dumps(q['options']),
                 'correct_answer': q['correct_answer'],
                 'category': q['category'],
                 'explanation': q.get('explanation', '')
             })
 
-        conn.commit()
-        conn.close()
+        # Bulk insert questions
+        success = db.add_quiz_questions_bulk(questions_to_insert)
+
+        if not success:
+            return jsonify({'error': 'Failed to store quiz questions'}), 500
+
+        # Retrieve stored questions with their database IDs
+        stored_questions = db.get_quiz_questions(quiz_id)
+
+        # Format questions for response
+        questions_with_db_ids = []
+        for sq in stored_questions:
+            questions_with_db_ids.append({
+                'id': sq['id'],  # UUID from Supabase
+                'question': sq['question'],
+                'options': json.loads(sq['options']),
+                'correct_answer': sq['correct_answer'],
+                'category': sq['category'],
+                'explanation': sq.get('explanation', '')
+            })
 
         print(f"\n✅ Quiz {quiz_id} created with {len(questions_with_db_ids)} questions")
-        print(f"   Sample question IDs being returned: {[q['id'] for q in questions_with_db_ids[:5]]}")
+        print(f"   Sample question IDs: {[str(q['id'])[:8] for q in questions_with_db_ids[:5]]}")
         print(f"{'='*60}\n")
 
         return jsonify({
@@ -243,14 +255,11 @@ def submit_quiz():
     if not quiz_id:
         return jsonify({'error': 'quiz_id is required'}), 400
 
-    # Convert all answer keys to integers for consistent comparison
+    # For Supabase, question IDs are UUIDs (strings)
+    # Normalize answers to use string keys
     normalized_answers = {}
     for key, value in answers.items():
-        try:
-            normalized_answers[int(key)] = value
-        except (ValueError, TypeError):
-            print(f"⚠️  Skipping invalid answer key: {key}")
-            continue
+        normalized_answers[str(key)] = value
 
     print(f"\n🔍 Received submission:")
     print(f"   Quiz ID: {quiz_id}")
@@ -259,9 +268,18 @@ def submit_quiz():
     print(f"   Sample answer keys: {list(normalized_answers.keys())[:5]}")
 
     user = User.get_by_clerk_id(request.clerk_user_id)
-    result = evaluate_quiz_with_gemini(quiz_id, normalized_answers, user['id'])
-
-    return jsonify(result), 200
+    
+    if not user:
+        return jsonify({'error': 'User not found. Please try logging in again.'}), 404
+    
+    try:
+        result = evaluate_quiz_with_gemini(quiz_id, normalized_answers, user['id'])
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"❌ Error evaluating quiz: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to evaluate quiz', 'details': str(e)}), 500
 
 # ==================== PROFILE ROUTES ====================
 
@@ -300,8 +318,8 @@ def health_check():
     """Health check endpoint"""
     return jsonify({
         'status': 'ok',
-        'message': 'Backend is running',
-        'timestamp': datetime.now().isoformat()
+        'message': 'Backend is running with Supabase',
+        'timestamp': datetime.utcnow().isoformat()
     }), 200
 
 # ==================== GEMINI AI FUNCTIONS ====================
@@ -588,16 +606,9 @@ def generate_quality_fallback(language):
 
 def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
     """Evaluate quiz and generate insights"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT id, question, options, correct_answer, category
-        FROM quiz_questions
-        WHERE quiz_id = ?
-    ''', (quiz_id,))
-
-    questions = cursor.fetchall()
+    
+    # Get all questions for this quiz from Supabase
+    questions = db.get_quiz_questions(quiz_id)
 
     print(f"\n{'='*60}")
     print(f"📊 Evaluating Quiz {quiz_id}")
@@ -612,9 +623,14 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
     correct_details = []
 
     for q in questions:
-        q_id, question, options_json, correct_answer, category = q
+        # In Supabase, q is a dict with UUID 'id'
+        q_id = str(q['id'])  # Convert UUID to string
+        question = q['question']
+        options_json = q['options']
+        correct_answer = q['correct_answer']
+        category = q['category']
 
-        # Now q_id is an integer from database, answers keys are also integers
+        # User answers use string keys (UUID strings)
         user_answer = answers.get(q_id)
 
         if category not in category_correct:
@@ -626,7 +642,7 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
         if is_correct:
             total_correct += 1
             category_correct[category]['correct'] += 1
-            print(f"   Q{q_id} ({category}): User={user_answer}, Correct={correct_answer} ✓")
+            print(f"   Q{q_id[:8]}... ({category}): User={user_answer}, Correct={correct_answer} ✓")
 
             if category in ['programming', 'python programming', 'python', 'python_programming']:
                 scores['programming'] += 3.5
@@ -639,7 +655,7 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
                 scores['testing'] += 2
                 scores['programming'] += 1
         else:
-            print(f"   Q{q_id} ({category}): User={user_answer}, Correct={correct_answer} ✗")
+            print(f"   Q{q_id[:8]}... ({category}): User={user_answer}, Correct={correct_answer} ✗")
 
     print(f"\n✅ Correct answers: {total_correct}/{len(questions)}")
     print(f"📈 Category breakdown: {category_correct}")
@@ -658,16 +674,22 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
         'technical': 'Technical Support/Engineering'
     }
 
-    cursor.execute('''
-        INSERT INTO results (user_id, quiz_id, total_score, programming_score, analytics_score,
-                            testing_score, recommended_domain, completed_at, ai_insights)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (user_id, quiz_id, total_correct, scores['programming'], scores['analytics'],
-          scores['testing'], recommended_domain, datetime.now(), json.dumps(insights)))
+    # Save result to Supabase
+    result = db.save_result(
+        user_id=user_id,
+        quiz_id=quiz_id,
+        total_score=total_correct,
+        programming_score=scores['programming'],
+        analytics_score=scores['analytics'],
+        testing_score=scores['testing'],
+        recommended_domain=recommended_domain,
+        ai_insights=json.dumps(insights)
+    )
 
-    result_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
+    if not result:
+        print("⚠️  Failed to save result to database")
+
+    result_id = result['id'] if result else None
 
     return {
         'result_id': result_id,

@@ -30,6 +30,7 @@ const QuizPage = ({ onComplete, auth }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(2700);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -42,20 +43,29 @@ const QuizPage = ({ onComplete, auth }) => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [answers, quiz]);
 
   const generateQuiz = async (difficulty, language) => {
     try {
+      setLoading(true);
+      console.log('🔄 Generating quiz with:', { difficulty, language });
+      
       const data = await apiCall('/quiz/generate', {
         method: 'POST',
         body: JSON.stringify({ difficulty, language }),
         auth,
       });
+      
+      console.log('✅ Quiz generated:', data);
+      console.log('📊 Total questions:', data.total);
+      console.log('🔑 Sample question IDs:', data.questions.slice(0, 3).map(q => q.id));
+      
       setQuiz(data);
       setLoading(false);
     } catch (error) {
-      console.error('Failed to generate quiz:', error);
-      alert('Failed to generate quiz. Please try again.');
+      console.error('❌ Failed to generate quiz:', error);
+      alert(`Failed to generate quiz: ${error.message}`);
+      setLoading(false);
     }
   };
 
@@ -64,27 +74,37 @@ const QuizPage = ({ onComplete, auth }) => {
   }, []);
 
   const handleAnswer = (questionId, answerIndex) => {
+    console.log(`📝 Answer recorded: Q${questionId} = ${answerIndex}`);
     setAnswers({ ...answers, [questionId]: answerIndex });
   };
 
   const handleSubmit = async () => {
-    if (!quiz) return;
+    if (!quiz || submitting) return;
     
-    setLoading(true);
+    // Prevent double submission
+    setSubmitting(true);
+    
+    console.log('\n📤 SUBMITTING QUIZ');
+    console.log('Quiz ID:', quiz.quiz_id);
+    console.log('Total answers:', Object.keys(answers).length);
+    console.log('Sample answers:', Object.entries(answers).slice(0, 5));
+    
     try {
       const result = await apiCall('/quiz/submit', {
         method: 'POST',
         body: JSON.stringify({
           quiz_id: quiz.quiz_id,
-          answers,
+          answers: answers,
         }),
         auth,
       });
+      
+      console.log('✅ Quiz submitted successfully:', result);
       onComplete(result);
     } catch (error) {
-      console.error('Failed to submit quiz:', error);
-      alert('Failed to submit quiz. Please try again.');
-      setLoading(false);
+      console.error('❌ Failed to submit quiz:', error);
+      alert(`Failed to submit quiz: ${error.message}`);
+      setSubmitting(false);
     }
   };
 
@@ -94,6 +114,7 @@ const QuizPage = ({ onComplete, auth }) => {
         <div className="text-white text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-xl">Generating your personalized quiz...</p>
+          <p className="text-sm text-gray-400 mt-2">This may take a few moments</p>
         </div>
       </div>
     );
@@ -112,12 +133,15 @@ const QuizPage = ({ onComplete, auth }) => {
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-indigo-400" />
-              <span className="font-semibold text-white">
+              <span className={`font-semibold ${timeLeft < 300 ? 'text-red-400' : 'text-white'}`}>
                 {minutes}:{seconds.toString().padStart(2, '0')}
               </span>
             </div>
             <div className="text-gray-300 font-medium">
               Question {currentQuestion + 1} of {quiz.total}
+            </div>
+            <div className="text-green-400 font-medium">
+              Answered: {Object.keys(answers).length}/{quiz.total}
             </div>
           </div>
           <div className="w-full bg-gray-800 rounded-full h-2">
@@ -182,9 +206,10 @@ const QuizPage = ({ onComplete, auth }) => {
             {currentQuestion === quiz.total - 1 ? (
               <button
                 onClick={handleSubmit}
-                className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg shadow-green-500/50"
+                disabled={submitting}
+                className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg shadow-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Quiz
+                {submitting ? 'Submitting...' : 'Submit Quiz'}
               </button>
             ) : (
               <button
