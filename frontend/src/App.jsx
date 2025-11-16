@@ -8,7 +8,7 @@ import ResultPage from './components/ResultPage';
 import { Home, User } from 'lucide-react';
 
 const CLERK_PUBLISHABLE_KEY = 'pk_test_Y29udGVudC1lbXUtMTguY2xlcmsuYWNjb3VudHMuZGV2JA';
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
 
 // Floating Stars Background Component
 const FloatingStarsBackground = () => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
 
 const apiCall = async (endpoint, options = {}) => {
   const { getToken } = options.auth || {};
