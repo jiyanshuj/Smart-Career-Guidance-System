@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { SignInButton, useUser } from '@clerk/clerk-react';
 import { Code, Brain, Target, BookOpen } from 'lucide-react';
 
 // Floating Stars Background Component
@@ -151,6 +152,32 @@ const FloatingStarsBackground = () => {
   );
 };
 
+// Component for the Start Assessment button with auth logic
+const StartAssessmentButton = ({ onStartQuiz }) => {
+  const { isSignedIn } = useUser();
+
+  if (isSignedIn) {
+    // User is logged in, proceed to quiz
+    return (
+      <button
+        onClick={onStartQuiz}
+        className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-10 py-5 rounded-xl text-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50"
+      >
+        Start Your Assessment
+      </button>
+    );
+  }
+
+  // User is not logged in, show sign-in button
+  return (
+    <SignInButton mode="modal">
+      <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-10 py-5 rounded-xl text-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50">
+        Start Your Assessment
+      </button>
+    </SignInButton>
+  );
+};
+
 const HomePage = ({ onStartQuiz }) => {
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
@@ -168,12 +195,7 @@ const HomePage = ({ onStartQuiz }) => {
           <p className="text-lg text-gray-400 mb-10 max-w-2xl mx-auto">
             Take a comprehensive 30-question assessment across programming, analytics, testing, and technical domains to unlock personalized career insights
           </p>
-          <button
-            onClick={onStartQuiz}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-10 py-5 rounded-xl text-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50"
-          >
-            Start Your Assessment
-          </button>
+          <StartAssessmentButton onStartQuiz={onStartQuiz} />
         </div>
 
         {/* Domain Cards */}
@@ -262,12 +284,7 @@ const HomePage = ({ onStartQuiz }) => {
           <p className="text-xl text-gray-300 mb-8">
             Join thousands discovering their ideal tech career
           </p>
-          <button
-            onClick={onStartQuiz}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-10 py-5 rounded-xl text-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50"
-          >
-            Begin Your Journey
-          </button>
+          <StartAssessmentButton onStartQuiz={onStartQuiz} />
         </div>
       </div>
     </div>

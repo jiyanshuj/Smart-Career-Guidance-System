@@ -150,7 +150,8 @@ const FloatingStarsBackground = () => {
   );
 };
 
-const NavBar = ({ page, setPage, scrollY }) => {
+// Updated NavBar with conditional auth buttons
+const NavBar = ({ page, setPage, scrollY, isSignedIn }) => {
   const isScrolled = scrollY > 50;
 
   return (
@@ -175,20 +176,39 @@ const NavBar = ({ page, setPage, scrollY }) => {
                 <Home className="w-4 h-4" />
                 Home
               </button>
-              <button
-                onClick={() => setPage('profile')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                  page === 'profile'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'text-gray-300 hover:bg-white/10'
-                }`}
-              >
-                <User className="w-4 h-4" />
-                Profile
-              </button>
+              {isSignedIn && (
+                <button
+                  onClick={() => setPage('profile')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                    page === 'profile'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                      : 'text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <User className="w-4 h-4" />
+                  Profile
+                </button>
+              )}
             </div>
           </div>
-          <UserButton afterSignOutUrl="/" />
+          
+          {/* Conditional Auth Buttons */}
+          {isSignedIn ? (
+            <UserButton afterSignOutUrl="/" />
+          ) : (
+            <div className="flex gap-3">
+              <SignInButton mode="modal">
+                <button className="text-white px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all">
+                  Sign Up
+                </button>
+              </SignUpButton>
+            </div>
+          )}
         </div>
       </div>
     </nav>
@@ -238,35 +258,23 @@ const AppContent = () => {
     }
   };
 
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-black relative overflow-hidden">
-        <FloatingStarsBackground />
-        <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
-          <div className="text-center">
-            <h1 className="text-6xl font-bold text-white mb-6">Career Aptitude Quiz</h1>
-            <p className="text-xl text-gray-300 mb-8">
-              Discover your ideal tech career path with AI-powered insights
-            </p>
-            <div className="flex gap-4 justify-center">
-              <SignInButton mode="modal">
-                <button className="bg-white text-black px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-200 transition-all transform hover:scale-105 shadow-lg">
-                  Sign In
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
-                  Sign Up
-                </button>
-              </SignUpButton>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Handler for starting quiz with auth check
+  const handleStartQuiz = () => {
+    if (!isSignedIn) {
+      // This will trigger Clerk's sign-in modal
+      // After successful sign-in, user will remain on home page
+      // They'll need to click the button again
+      return;
+    }
+    setPage('config');
+  };
 
   const renderPage = () => {
+    // Block access to authenticated-only pages
+    if (!isSignedIn && (page === 'config' || page === 'quiz' || page === 'result' || page === 'profile')) {
+      return <HomePage onStartQuiz={handleStartQuiz} />;
+    }
+
     if (page === 'config') {
       return (
         <QuizConfig
@@ -310,15 +318,16 @@ const AppContent = () => {
       return <ProfilePage auth={auth} />;
     }
 
-    return <HomePage onStartQuiz={() => setPage('config')} />;
+    return <HomePage onStartQuiz={handleStartQuiz} />;
   };
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       <FloatingStarsBackground />
       
+      {/* Always show NavBar, but hide on quiz/result/config pages */}
       {page !== 'quiz' && page !== 'result' && page !== 'config' && (
-        <NavBar page={page} setPage={setPage} scrollY={scrollY} />
+        <NavBar page={page} setPage={setPage} scrollY={scrollY} isSignedIn={isSignedIn} />
       )}
       
       <div className={`relative z-10 ${page !== 'quiz' && page !== 'result' && page !== 'config' ? 'pt-20' : ''}`}>
