@@ -197,6 +197,10 @@ class DatabaseManager:
             print(f"Error getting result: {e}")
             return None
     
+    def get_result_by_id(self, result_id: str) -> Optional[Dict]:
+        """Get result details by result ID (alias for get_result)"""
+        return self.get_result(result_id)
+    
     def get_user_results(self, user_id: str, limit: int = 10) -> List[Dict]:
         """Get all results for a user"""
         try:
@@ -219,6 +223,10 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error getting quiz result: {e}")
             return None
+
+    def get_quiz_session_by_id(self, quiz_id: str) -> Optional[Dict]:
+        """Get quiz session details (alias for get_quiz_session)"""
+        return self.get_quiz_session(quiz_id)
     
     # ==================== ANALYTICS OPERATIONS ====================
     

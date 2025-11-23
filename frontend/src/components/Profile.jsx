@@ -3,7 +3,7 @@ import { useUser } from '@clerk/clerk-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Target, TrendingUp, Award, Code } from 'lucide-react';
 
-const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
+const API_BASE = 'http://127.0.0.1:5000/api';
 
 const apiCall = async (endpoint, options = {}) => {
   const { getToken } = options.auth || {};

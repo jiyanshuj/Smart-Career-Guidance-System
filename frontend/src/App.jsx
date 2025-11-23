@@ -8,7 +8,7 @@ import ResultPage from './components/ResultPage';
 import { Home, User } from 'lucide-react';
 
 const CLERK_PUBLISHABLE_KEY = 'pk_test_Y29udGVudC1lbXUtMTguY2xlcmsuYWNjb3VudHMuZGV2JA';
-const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
+const API_BASE = 'http://127.0.0.1:5000/api';
 
 // Floating Stars Background Component
 const FloatingStarsBackground = () => {
@@ -40,7 +40,6 @@ const FloatingStarsBackground = () => {
 
     const ctx = canvas.getContext('2d');
     
-    // Initialize stars with random positions, velocities, and sizes
     if (starsRef.current.length === 0) {
       starsRef.current = Array.from({ length: 150 }, () => ({
         x: Math.random() * dimensions.width,
@@ -59,36 +58,29 @@ const FloatingStarsBackground = () => {
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Animation loop
     const animate = () => {
       ctx.clearRect(0, 0, dimensions.width, dimensions.height);
 
-      // Update and draw stars
       starsRef.current.forEach((star) => {
-        // Move stars
         star.x += star.vx;
         star.y += star.vy;
 
-        // Wrap around screen edges
         if (star.x < 0) star.x = dimensions.width;
         if (star.x > dimensions.width) star.x = 0;
         if (star.y < 0) star.y = dimensions.height;
         if (star.y > dimensions.height) star.y = 0;
 
-        // Twinkle effect
         star.opacity += star.twinkleSpeed;
         if (star.opacity > 0.8 || star.opacity < 0.2) {
           star.twinkleSpeed *= -1;
         }
 
-        // Draw star
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
         ctx.fill();
       });
 
-      // Draw connections between nearby stars
       const maxDistance = 120;
       ctx.lineWidth = 1;
 
@@ -103,7 +95,7 @@ const FloatingStarsBackground = () => {
 
           if (distance < maxDistance) {
             const opacity = (1 - distance / maxDistance) * 0.3;
-            ctx.strokeStyle = `rgba(59, 130, 246, ${opacity})`; // Blue color
+            ctx.strokeStyle = `rgba(59, 130, 246, ${opacity})`;
             ctx.beginPath();
             ctx.moveTo(star1.x, star1.y);
             ctx.lineTo(star2.x, star2.y);
@@ -112,7 +104,6 @@ const FloatingStarsBackground = () => {
         }
       }
 
-      // Draw connections from mouse to nearby stars
       const mouseMaxDistance = 150;
       starsRef.current.forEach((star) => {
         const dx = mouseRef.current.x - star.x;
@@ -121,14 +112,13 @@ const FloatingStarsBackground = () => {
 
         if (distance < mouseMaxDistance) {
           const opacity = (1 - distance / mouseMaxDistance) * 0.5;
-          ctx.strokeStyle = `rgba(168, 85, 247, ${opacity})`; // Purple color
+          ctx.strokeStyle = `rgba(168, 85, 247, ${opacity})`;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.moveTo(mouseRef.current.x, mouseRef.current.y);
           ctx.lineTo(star.x, star.y);
           ctx.stroke();
 
-          // Add glow effect to connected stars
           ctx.beginPath();
           ctx.arc(star.x, star.y, star.size + 2, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(168, 85, 247, ${opacity * 0.3})`;
@@ -160,7 +150,6 @@ const FloatingStarsBackground = () => {
   );
 };
 
-// Navigation Bar Component
 const NavBar = ({ page, setPage, scrollY }) => {
   const isScrolled = scrollY > 50;
 
@@ -206,7 +195,6 @@ const NavBar = ({ page, setPage, scrollY }) => {
   );
 };
 
-// Main App Content Component
 const AppContent = () => {
   const { isSignedIn, user } = useUser();
   const { getToken } = useAuth();
@@ -214,10 +202,10 @@ const AppContent = () => {
   const [result, setResult] = useState(null);
   const [synced, setSynced] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [quizConfig, setQuizConfig] = useState({ difficulty: 'moderate', language: 'python' });
 
   const auth = { getToken };
 
-  // Handle scroll
   useEffect(() => {
     const handleScroll = () => {
       setScrollY(window.scrollY);
@@ -227,7 +215,6 @@ const AppContent = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Sync user with backend when signed in
   useEffect(() => {
     if (isSignedIn && user && !synced) {
       syncUser();
@@ -283,7 +270,10 @@ const AppContent = () => {
     if (page === 'config') {
       return (
         <QuizConfig
-          onStart={(difficulty, language) => setPage('quiz')}
+          onStart={(difficulty, language) => {
+            setQuizConfig({ difficulty, language });
+            setPage('quiz');
+          }}
           onBack={() => setPage('home')}
         />
       );
@@ -297,6 +287,8 @@ const AppContent = () => {
             setPage('result');
           }}
           auth={auth}
+          difficulty={quizConfig.difficulty}
+          language={quizConfig.language}
         />
       );
     }
@@ -336,7 +328,6 @@ const AppContent = () => {
   );
 };
 
-// Root App with Clerk Provider
 export default function App() {
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>

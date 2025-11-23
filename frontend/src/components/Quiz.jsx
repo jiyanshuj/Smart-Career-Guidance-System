@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle } from 'lucide-react';
 
-const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
+const API_BASE = 'http://127.0.0.1:5000/api';
 
 const apiCall = async (endpoint, options = {}) => {
   const { getToken } = options.auth || {};
@@ -24,7 +24,7 @@ const apiCall = async (endpoint, options = {}) => {
   return response.json();
 };
 
-const QuizPage = ({ onComplete, auth }) => {
+const QuizPage = ({ onComplete, auth, difficulty, language }) => {
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -70,8 +70,8 @@ const QuizPage = ({ onComplete, auth }) => {
   };
 
   useEffect(() => {
-    generateQuiz('moderate', 'python');
-  }, []);
+    generateQuiz(difficulty, language);
+  }, [difficulty, language]);
 
   const handleAnswer = (questionId, answerIndex) => {
     console.log(`📝 Answer recorded: Q${questionId} = ${answerIndex}`);

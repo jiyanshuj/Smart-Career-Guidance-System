@@ -605,9 +605,8 @@ def generate_quality_fallback(language):
     return questions
 
 def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
-    """Evaluate quiz and generate insights"""
+    """Evaluate quiz with detailed question-by-question analysis"""
     
-    # Get all questions for this quiz from Supabase
     questions = db.get_quiz_questions(quiz_id)
 
     print(f"\n{'='*60}")
@@ -615,22 +614,22 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
     print(f"{'='*60}")
     print(f"Total questions: {len(questions)}")
     print(f"User answers received: {len(answers)}")
-    print(f"Sample answer keys: {list(answers.keys())[:5]}")
 
     scores = {'programming': 0, 'analytics': 0, 'testing': 0, 'technical': 0}
     total_correct = 0
     category_correct = {}
-    correct_details = []
+    
+    # NEW: Detailed question results
+    question_results = []
 
     for q in questions:
-        # In Supabase, q is a dict with UUID 'id'
-        q_id = str(q['id'])  # Convert UUID to string
-        question = q['question']
-        options_json = q['options']
+        q_id = str(q['id'])
+        question_text = q['question']
+        options = json.loads(q['options']) if isinstance(q['options'], str) else q['options']
         correct_answer = q['correct_answer']
         category = q['category']
+        explanation = q.get('explanation', '')
 
-        # User answers use string keys (UUID strings)
         user_answer = answers.get(q_id)
 
         if category not in category_correct:
@@ -639,11 +638,23 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
         category_correct[category]['total'] += 1
         is_correct = (user_answer == correct_answer)
 
+        # Store detailed question result
+        question_results.append({
+            'id': q_id,
+            'question': question_text,
+            'options': options,
+            'user_answer': user_answer,
+            'correct_answer': correct_answer,
+            'is_correct': is_correct,
+            'category': category,
+            'explanation': explanation
+        })
+
         if is_correct:
             total_correct += 1
             category_correct[category]['correct'] += 1
-            print(f"   Q{q_id[:8]}... ({category}): User={user_answer}, Correct={correct_answer} ✓")
 
+            # Scoring logic
             if category in ['programming', 'python programming', 'python', 'python_programming']:
                 scores['programming'] += 3.5
                 scores['technical'] += 1
@@ -654,8 +665,6 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
                 scores['technical'] += 2.5
                 scores['testing'] += 2
                 scores['programming'] += 1
-        else:
-            print(f"   Q{q_id[:8]}... ({category}): User={user_answer}, Correct={correct_answer} ✗")
 
     print(f"\n✅ Correct answers: {total_correct}/{len(questions)}")
     print(f"📈 Category breakdown: {category_correct}")
@@ -665,7 +674,8 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
     max_score = max(scores.values()) if scores.values() else 0
     recommended_domain = [k for k, v in scores.items() if v == max_score][0] if max_score > 0 else 'programming'
 
-    insights = generate_insights_fast(scores, total_correct, recommended_domain)
+    # Generate comprehensive insights
+    insights = generate_comprehensive_insights(scores, total_correct, recommended_domain, category_correct)
 
     domain_names = {
         'programming': 'Programmer/Developer',
@@ -686,9 +696,6 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
         ai_insights=json.dumps(insights)
     )
 
-    if not result:
-        print("⚠️  Failed to save result to database")
-
     result_id = result['id'] if result else None
 
     return {
@@ -699,44 +706,203 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
         'domain_scores': scores,
         'recommended_domain': domain_names.get(recommended_domain, recommended_domain),
         'category_breakdown': category_correct,
+        'question_results': question_results,  # NEW: Detailed results
         'ai_insights': insights
     }
 
-def generate_insights_fast(scores, total_correct, domain):
-    """Generate insights with gemini-2.0-flash-lite"""
+def generate_comprehensive_insights(scores, total_correct, domain, category_correct):
+    """Generate comprehensive career insights with all sections"""
     
     wait_for_rate_limit()
     
     model = genai.GenerativeModel('gemini-2.0-flash-lite')
     
-    prompt = f"""Analyze: {total_correct}/30, Domain: {domain}, Scores: {json.dumps(scores)}
+    prompt = f"""Generate comprehensive career guidance for quiz results:
+Score: {total_correct}/30 ({round(total_correct/30*100)}%)
+Recommended Domain: {domain}
+Domain Scores: {json.dumps(scores)}
+Category Performance: {json.dumps(category_correct)}
 
-Return JSON only:
-{{"strengths":["2 items"],"improvements":["2 items"],"career_paths":["3 roles"],"learning_resources":["3 items"]}}"""
+Return valid JSON with these sections:
+{{
+  "overview": {{
+    "summary": "2-3 sentence overview of performance",
+    "key_takeaway": "Main insight"
+  }},
+  "strengths": ["3-4 specific strengths"],
+  "improvements": ["3-4 actionable improvements"],
+  "career_paths": [
+    {{"title": "Primary Role", "description": "Why suitable", "growth": "Career growth potential"}},
+    {{"title": "Secondary Role", "description": "Alternative path", "growth": "Growth outlook"}},
+    {{"title": "Emerging Role", "description": "Future opportunity", "growth": "Long-term potential"}}
+  ],
+  "action_plan": [
+    {{"phase": "Immediate (0-3 months)", "actions": ["action1", "action2", "action3"]}},
+    {{"phase": "Short-term (3-6 months)", "actions": ["action1", "action2", "action3"]}},
+    {{"phase": "Long-term (6-12 months)", "actions": ["action1", "action2", "action3"]}}
+  ],
+  "learning_resources": [
+    {{"type": "Course", "title": "Resource name", "platform": "Platform", "focus": "What it teaches"}},
+    {{"type": "Practice", "title": "Practice platform", "platform": "Website", "focus": "Skills to build"}},
+    {{"type": "Book/Article", "title": "Reading material", "platform": "Where to find", "focus": "Knowledge area"}},
+    {{"type": "Project", "title": "Project idea", "platform": "How to build", "focus": "Skills applied"}}
+  ]
+}}"""
 
     try:
-        print("🔄 Generating insights...")
+        print("🔄 Generating comprehensive insights...")
         response = model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                max_output_tokens=512,
+                temperature=0.8,
+                max_output_tokens=2048,
             )
         )
         
         text = response.text.strip().replace('```json', '').replace('```', '').strip()
         insights = json.loads(text)
-        print("✓ Insights generated")
+        print("✓ Comprehensive insights generated")
         return insights
         
     except Exception as e:
         print(f"⚠️  Insights fallback: {e}")
-        return {
-            "strengths": ["Strong problem-solving ability", "Good technical foundation"],
-            "improvements": ["Practice more coding problems", "Focus on weak areas"],
-            "career_paths": ["Software Developer", "Technical Analyst", "QA Engineer"],
-            "learning_resources": ["LeetCode daily practice", "System design courses", "Mock interviews"]
-        }
+        return get_fallback_insights(domain, total_correct)
+
+def get_fallback_insights(domain, score):
+    """Fallback insights if API fails"""
+    percentage = round((score / 30) * 100)
+    
+    return {
+        "overview": {
+            "summary": f"You scored {score}/30 ({percentage}%), showing strong potential in {domain}. Your performance indicates good foundational knowledge with room for growth.",
+            "key_takeaway": "Focus on consistent practice and targeted learning to excel in your chosen field."
+        },
+        "strengths": [
+            "Strong problem-solving mindset",
+            "Good grasp of fundamental concepts",
+            "Ability to work under timed conditions",
+            "Diverse skill set across multiple domains"
+        ],
+        "improvements": [
+            "Practice more coding challenges daily",
+            "Deep dive into advanced topics",
+            "Work on time management strategies",
+            "Build real-world projects to apply knowledge"
+        ],
+        "career_paths": [
+            {
+                "title": "Software Developer",
+                "description": "Build applications and solve complex problems with code",
+                "growth": "High demand with excellent salary growth potential"
+            },
+            {
+                "title": "Quality Assurance Engineer",
+                "description": "Ensure software quality through testing and automation",
+                "growth": "Stable career with growing automation opportunities"
+            },
+            {
+                "title": "Technical Analyst",
+                "description": "Bridge gap between business and technology teams",
+                "growth": "Versatile role with transition to various tech positions"
+            }
+        ],
+        "action_plan": [
+            {
+                "phase": "Immediate (0-3 months)",
+                "actions": [
+                    "Solve 2-3 LeetCode problems daily",
+                    "Complete one online course in your domain",
+                    "Build a portfolio project"
+                ]
+            },
+            {
+                "phase": "Short-term (3-6 months)",
+                "actions": [
+                    "Contribute to open-source projects",
+                    "Attend tech meetups and networking events",
+                    "Master one programming framework deeply"
+                ]
+            },
+            {
+                "phase": "Long-term (6-12 months)",
+                "actions": [
+                    "Prepare for technical interviews at target companies",
+                    "Build 2-3 significant portfolio projects",
+                    "Consider relevant certifications in your field"
+                ]
+            }
+        ],
+        "learning_resources": [
+            {
+                "type": "Course",
+                "title": "CS50 - Introduction to Computer Science",
+                "platform": "Harvard/edX",
+                "focus": "Strong programming fundamentals"
+            },
+            {
+                "type": "Practice",
+                "title": "LeetCode Premium",
+                "platform": "leetcode.com",
+                "focus": "Algorithm and data structure mastery"
+            },
+            {
+                "type": "Book",
+                "title": "Cracking the Coding Interview",
+                "platform": "Amazon/Library",
+                "focus": "Interview preparation and problem-solving"
+            },
+            {
+                "type": "Project",
+                "title": "Build a Full-Stack Application",
+                "platform": "GitHub",
+                "focus": "End-to-end development skills"
+            }
+        ]
+    }
+
+
+# ==================== NEW ENDPOINT FOR SHARE RESULTS ====================
+
+@app.route('/api/results/<result_id>', methods=['GET'])
+def get_result_details(result_id):
+    """Get detailed results for sharing - public endpoint"""
+    try:
+        result = db.get_result_by_id(result_id)
+        
+        if not result:
+            return jsonify({'error': 'Result not found'}), 404
+        
+        # Get user info
+        user = User.get_by_id(result['user_id'])
+        
+        # Get quiz questions for detailed breakdown
+        quiz_id = result['quiz_id']
+        questions = db.get_quiz_questions(quiz_id)
+        
+        # Parse AI insights
+        ai_insights = json.loads(result['ai_insights']) if result.get('ai_insights') else None
+        
+        return jsonify({
+            'result_id': result['id'],
+            'user_name': user['name'] if user else 'Anonymous',
+            'quiz_id': quiz_id,
+            'total_score': result['total_score'],
+            'total_questions': len(questions),
+            'percentage': round((result['total_score'] / len(questions)) * 100, 2) if questions else 0,
+            'domain_scores': {
+                'programming': result['programming_score'],
+                'analytics': result['analytics_score'],
+                'testing': result['testing_score'],
+                'technical': result.get('technical_score', 0)
+            },
+            'recommended_domain': result['recommended_domain'],
+            'ai_insights': ai_insights,
+            'created_at': result['created_at']
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error fetching result: {e}")
+        return jsonify({'error': 'Failed to fetch result'}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
