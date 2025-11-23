@@ -3,12 +3,12 @@ import { useUser } from '@clerk/clerk-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Target, TrendingUp, Award, Code } from 'lucide-react';
 
-const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 const apiCall = async (endpoint, options = {}) => {
   const { getToken } = options.auth || {};
   const token = getToken ? await getToken() : null;
-  
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
@@ -17,12 +17,12 @@ const apiCall = async (endpoint, options = {}) => {
       ...options.headers,
     },
   });
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.error || 'Request failed');
   }
-  
+
   return response.json();
 };
 

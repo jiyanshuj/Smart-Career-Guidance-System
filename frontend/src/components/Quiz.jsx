@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle } from 'lucide-react';
 
-const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 const apiCall = async (endpoint, options = {}) => {
   const { getToken } = options.auth || {};
   const token = getToken ? await getToken() : null;
-  
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
@@ -15,12 +15,12 @@ const apiCall = async (endpoint, options = {}) => {
       ...options.headers,
     },
   });
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.error || 'Request failed');
   }
-  
+
   return response.json();
 };
 
@@ -49,17 +49,17 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
     try {
       setLoading(true);
       console.log('🔄 Generating quiz with:', { difficulty, language });
-      
+
       const data = await apiCall('/quiz/generate', {
         method: 'POST',
         body: JSON.stringify({ difficulty, language }),
         auth,
       });
-      
+
       console.log('✅ Quiz generated:', data);
       console.log('📊 Total questions:', data.total);
       console.log('🔑 Sample question IDs:', data.questions.slice(0, 3).map(q => q.id));
-      
+
       setQuiz(data);
       setLoading(false);
     } catch (error) {
@@ -80,15 +80,15 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
 
   const handleSubmit = async () => {
     if (!quiz || submitting) return;
-    
+
     // Prevent double submission
     setSubmitting(true);
-    
+
     console.log('\n📤 SUBMITTING QUIZ');
     console.log('Quiz ID:', quiz.quiz_id);
     console.log('Total answers:', Object.keys(answers).length);
     console.log('Sample answers:', Object.entries(answers).slice(0, 5));
-    
+
     try {
       const result = await apiCall('/quiz/submit', {
         method: 'POST',
@@ -98,7 +98,7 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
         }),
         auth,
       });
-      
+
       console.log('✅ Quiz submitted successfully:', result);
       onComplete(result);
     } catch (error) {
@@ -170,19 +170,17 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
               <button
                 key={idx}
                 onClick={() => handleAnswer(question.id, idx)}
-                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                  answers[question.id] === idx
+                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${answers[question.id] === idx
                     ? 'border-indigo-500 bg-indigo-500/20 shadow-lg shadow-indigo-500/20'
                     : 'border-gray-700 hover:border-indigo-500/50 hover:bg-gray-800/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center">
                   <div
-                    className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${
-                      answers[question.id] === idx
+                    className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${answers[question.id] === idx
                         ? 'border-indigo-500 bg-indigo-500'
                         : 'border-gray-600'
-                    }`}
+                      }`}
                   >
                     {answers[question.id] === idx && (
                       <CheckCircle className="w-4 h-4 text-white" />
@@ -202,7 +200,7 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
             >
               Previous
             </button>
-            
+
             {currentQuestion === quiz.total - 1 ? (
               <button
                 onClick={handleSubmit}
@@ -230,13 +228,11 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
               <button
                 key={idx}
                 onClick={() => setCurrentQuestion(idx)}
-                className={`w-10 h-10 rounded-lg font-semibold transition-all ${
-                  answers[q.id] !== undefined
+                className={`w-10 h-10 rounded-lg font-semibold transition-all ${answers[q.id] !== undefined
                     ? 'bg-green-500 text-white shadow-lg shadow-green-500/50'
                     : 'bg-gray-800 text-gray-400 border border-gray-700'
-                } ${
-                  currentQuestion === idx ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-black' : ''
-                }`}
+                  } ${currentQuestion === idx ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-black' : ''
+                  }`}
               >
                 {idx + 1}
               </button>

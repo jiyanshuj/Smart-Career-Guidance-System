@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell } from 'recharts';
-import { Award, CheckCircle, TrendingUp, Target, BookOpen, XCircle, Share2, Download, ChevronDown, ChevronUp, Calendar, Trophy, MapPin } from 'lucide-react';
+import { Award, CheckCircle, TrendingUp, Target, BookOpen, XCircle, Share2, Download, ChevronDown, ChevronUp, Calendar, Trophy, MapPin, ExternalLink } from 'lucide-react';
 
 const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -55,8 +55,8 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
   };
 
   const handleDownload = () => {
-    // Generate PDF or image (simplified version)
-    alert('Download feature coming soon!');
+    // Generate PDF using window.print or a library
+    window.print();
   };
 
   // Filter questions by category
@@ -227,9 +227,28 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                         data={categoryData}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
-                        label={({ name, percentage }) => `${name}: ${percentage}%`}
-                        outerRadius={80}
+                        labelLine={true}
+                        label={({ cx, cy, midAngle, innerRadius, outerRadius, name, percentage }) => {
+                          const RADIAN = Math.PI / 180;
+                          const radius = outerRadius + 25;
+                          const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                          const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                          
+                          return (
+                            <text 
+                              x={x} 
+                              y={y} 
+                              fill="white" 
+                              textAnchor={x > cx ? 'start' : 'end'} 
+                              dominantBaseline="central"
+                              fontSize="12"
+                              fontWeight="600"
+                            >
+                              {`${name}: ${percentage}%`}
+                            </text>
+                          );
+                        }}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -237,7 +256,14 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#1F2937', 
+                          border: '1px solid #374151', 
+                          borderRadius: '8px',
+                          color: 'white'
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -317,10 +343,21 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                       </div>
                       <h4 className="text-xl font-bold text-white">{path.title}</h4>
                     </div>
-                    <p className="text-gray-300 mb-4">{path.description}</p>
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                    <p className="text-gray-300 mb-4 leading-relaxed">{path.description}</p>
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-3">
                       <p className="text-blue-300 text-sm font-semibold">📈 {path.growth}</p>
                     </div>
+                    {path.learn_more_url && (
+                      <a
+                        href={path.learn_more_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors group"
+                      >
+                        Learn More
+                        <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
@@ -338,14 +375,33 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
               <div className="space-y-6">
                 {result.ai_insights.action_plan.map((plan, idx) => (
                   <div key={idx} className="border-l-4 border-purple-500 pl-6 py-2">
-                    <h4 className="text-xl font-bold text-purple-400 mb-3">{plan.phase}</h4>
-                    <ul className="space-y-2">
-                      {plan.actions.map((action, actionIdx) => (
-                        <li key={actionIdx} className="flex items-start gap-3 text-gray-300">
-                          <span className="text-purple-400 mt-1">✓</span>
-                          <span>{action}</span>
-                        </li>
-                      ))}
+                    <h4 className="text-xl font-bold text-purple-400 mb-4">{plan.phase}</h4>
+                    <ul className="space-y-3">
+                      {plan.actions.map((action, actionIdx) => {
+                        // Handle both string and object formats
+                        const actionText = typeof action === 'string' ? action : action.text;
+                        const actionUrl = typeof action === 'object' ? action.url : null;
+                        
+                        return (
+                          <li key={actionIdx} className="flex items-start gap-3">
+                            <span className="text-purple-400 mt-1 flex-shrink-0">✓</span>
+                            <div className="flex-1">
+                              <span className="text-gray-300">{actionText}</span>
+                              {actionUrl && (
+                                <a
+                                  href={actionUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 ml-2 text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors group"
+                                >
+                                  Get Started
+                                  <ExternalLink className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                                </a>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 ))}
@@ -373,8 +429,19 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                       </span>
                     </div>
                     <h4 className="text-xl font-bold text-white mb-2">{resource.title}</h4>
-                    <p className="text-gray-400 text-sm mb-3">{resource.platform}</p>
-                    <p className="text-gray-300">{resource.focus}</p>
+                    <p className="text-gray-400 text-sm mb-2">{resource.platform}</p>
+                    <p className="text-gray-300 mb-4">{resource.focus}</p>
+                    {resource.url && (
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-all text-sm group"
+                      >
+                        Access Resource
+                        <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>

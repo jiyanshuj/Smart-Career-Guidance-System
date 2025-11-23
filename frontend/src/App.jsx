@@ -8,7 +8,7 @@ import ResultPage from './components/ResultPage';
 import { Home, User } from 'lucide-react';
 
 const CLERK_PUBLISHABLE_KEY = 'pk_test_Y29udGVudC1lbXUtMTguY2xlcmsuYWNjb3VudHMuZGV2JA';
-const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
+const API_BASE = 'http://localhost:5000/api';
 
 // Floating Stars Background Component
 const FloatingStarsBackground = () => {
@@ -39,7 +39,7 @@ const FloatingStarsBackground = () => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    
+
     if (starsRef.current.length === 0) {
       starsRef.current = Array.from({ length: 150 }, () => ({
         x: Math.random() * dimensions.width,
@@ -88,7 +88,7 @@ const FloatingStarsBackground = () => {
         for (let j = i + 1; j < starsRef.current.length; j++) {
           const star1 = starsRef.current[i];
           const star2 = starsRef.current[j];
-          
+
           const dx = star1.x - star2.x;
           const dy = star1.y - star2.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
@@ -156,9 +156,8 @@ const NavBar = ({ page, setPage, scrollY, isSignedIn }) => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-black/80 backdrop-blur-md border-b border-white/10' : 'bg-black/60 backdrop-blur-sm border-b border-white/5'
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black/80 backdrop-blur-md border-b border-white/10' : 'bg-black/60 backdrop-blur-sm border-b border-white/5'
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
@@ -167,11 +166,10 @@ const NavBar = ({ page, setPage, scrollY, isSignedIn }) => {
             <div className="flex gap-4">
               <button
                 onClick={() => setPage('home')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                  page === 'home'
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${page === 'home'
                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                     : 'text-gray-300 hover:bg-white/10'
-                }`}
+                  }`}
               >
                 <Home className="w-4 h-4" />
                 Home
@@ -179,11 +177,10 @@ const NavBar = ({ page, setPage, scrollY, isSignedIn }) => {
               {isSignedIn && (
                 <button
                   onClick={() => setPage('profile')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                    page === 'profile'
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${page === 'profile'
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                       : 'text-gray-300 hover:bg-white/10'
-                  }`}
+                    }`}
                 >
                   <User className="w-4 h-4" />
                   Profile
@@ -191,7 +188,7 @@ const NavBar = ({ page, setPage, scrollY, isSignedIn }) => {
               )}
             </div>
           </div>
-          
+
           {/* Conditional Auth Buttons */}
           {isSignedIn ? (
             <UserButton afterSignOutUrl="/" />
@@ -324,12 +321,12 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       <FloatingStarsBackground />
-      
+
       {/* Always show NavBar, but hide on quiz/result/config pages */}
       {page !== 'quiz' && page !== 'result' && page !== 'config' && (
         <NavBar page={page} setPage={setPage} scrollY={scrollY} isSignedIn={isSignedIn} />
       )}
-      
+
       <div className={`relative z-10 ${page !== 'quiz' && page !== 'result' && page !== 'config' ? 'pt-20' : ''}`}>
         {renderPage()}
       </div>
