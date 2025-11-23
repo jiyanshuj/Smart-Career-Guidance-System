@@ -674,7 +674,7 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
     max_score = max(scores.values()) if scores.values() else 0
     recommended_domain = [k for k, v in scores.items() if v == max_score][0] if max_score > 0 else 'programming'
 
-    # Generate comprehensive insights
+    # Generate comprehensive insights with URLs
     insights = generate_comprehensive_insights(scores, total_correct, recommended_domain, category_correct)
 
     domain_names = {
@@ -711,17 +711,23 @@ def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
     }
 
 def generate_comprehensive_insights(scores, total_correct, domain, category_correct):
-    """Generate comprehensive career insights with all sections"""
+    """Generate comprehensive career insights with URLs for all sections"""
     
     wait_for_rate_limit()
     
     model = genai.GenerativeModel('gemini-2.0-flash-lite')
     
-    prompt = f"""Generate comprehensive career guidance for quiz results:
+    prompt = f"""Generate comprehensive career guidance with REAL, WORKING URLs for quiz results:
 Score: {total_correct}/30 ({round(total_correct/30*100)}%)
 Recommended Domain: {domain}
 Domain Scores: {json.dumps(scores)}
 Category Performance: {json.dumps(category_correct)}
+
+IMPORTANT: Include REAL, accessible URLs from popular platforms like:
+- Courses: Coursera, Udemy, edX, YouTube, freeCodeCamp
+- Practice: LeetCode, HackerRank, CodeSignal, GeeksforGeeks
+- Articles: Medium, Dev.to, official documentation
+- Career info: LinkedIn, Glassdoor, Indeed
 
 Return valid JSON with these sections:
 {{
@@ -732,44 +738,180 @@ Return valid JSON with these sections:
   "strengths": ["3-4 specific strengths"],
   "improvements": ["3-4 actionable improvements"],
   "career_paths": [
-    {{"title": "Primary Role", "description": "Why suitable", "growth": "Career growth potential"}},
-    {{"title": "Secondary Role", "description": "Alternative path", "growth": "Growth outlook"}},
-    {{"title": "Emerging Role", "description": "Future opportunity", "growth": "Long-term potential"}}
+    {{
+      "title": "Primary Role",
+      "description": "Why suitable (50-80 words)",
+      "growth": "Career growth potential",
+      "learn_more_url": "https://..."
+    }}
   ],
   "action_plan": [
-    {{"phase": "Immediate (0-3 months)", "actions": ["action1", "action2", "action3"]}},
-    {{"phase": "Short-term (3-6 months)", "actions": ["action1", "action2", "action3"]}},
-    {{"phase": "Long-term (6-12 months)", "actions": ["action1", "action2", "action3"]}}
+    {{
+      "phase": "Immediate (0-3 months)",
+      "actions": [
+        {{"text": "Specific actionable step", "url": "https://... (real learning resource)"}},
+        {{"text": "Another concrete action", "url": "https://..."}},
+        {{"text": "Third action item", "url": "https://..."}}
+      ]
+    }},
+    {{
+      "phase": "Short-term (3-6 months)",
+      "actions": [
+        {{"text": "Next level goal", "url": "https://..."}},
+        {{"text": "Skill development step", "url": "https://..."}},
+        {{"text": "Networking/community action", "url": "https://..."}}
+      ]
+    }},
+    {{
+      "phase": "Long-term (6-12 months)",
+      "actions": [
+        {{"text": "Advanced goal", "url": "https://..."}},
+        {{"text": "Career preparation", "url": "https://..."}},
+        {{"text": "Expertise building", "url": "https://..."}}
+      ]
+    }}
   ],
   "learning_resources": [
-    {{"type": "Course", "title": "Resource name", "platform": "Platform", "focus": "What it teaches"}},
-    {{"type": "Practice", "title": "Practice platform", "platform": "Website", "focus": "Skills to build"}},
-    {{"type": "Book/Article", "title": "Reading material", "platform": "Where to find", "focus": "Knowledge area"}},
-    {{"type": "Project", "title": "Project idea", "platform": "How to build", "focus": "Skills applied"}}
+    {{
+      "type": "Course",
+      "title": "Specific course name",
+      "platform": "Platform name",
+      "focus": "What it teaches",
+      "url": "https://... (direct course link)"
+    }},
+    {{
+      "type": "Practice",
+      "title": "Practice platform/challenge",
+      "platform": "Website name",
+      "focus": "Skills to build",
+      "url": "https://... (direct link)"
+    }},
+    {{
+      "type": "Book/Article",
+      "title": "Reading material",
+      "platform": "Where to find",
+      "focus": "Knowledge area",
+      "url": "https://... (Amazon, Medium, etc.)"
+    }},
+    {{
+      "type": "Project",
+      "title": "Project idea with tutorial",
+      "platform": "Tutorial source",
+      "focus": "Skills applied",
+      "url": "https://... (tutorial/guide link)"
+    }},
+    {{
+      "type": "Community",
+      "title": "Forum/Community",
+      "platform": "Platform",
+      "focus": "Networking and support",
+      "url": "https://... (Discord, Reddit, etc.)"
+    }},
+    {{
+      "type": "Documentation",
+      "title": "Official docs/guide",
+      "platform": "Official source",
+      "focus": "Reference material",
+      "url": "https://... (official documentation)"
+    }}
   ]
-}}"""
+}}
+
+Make URLs relevant to {domain} domain. Use real platforms that exist."""
 
     try:
-        print("🔄 Generating comprehensive insights...")
+        print("🔄 Generating comprehensive insights with URLs...")
         response = model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
                 temperature=0.8,
-                max_output_tokens=2048,
+                max_output_tokens=4096,  # Increased for URLs
             )
         )
         
         text = response.text.strip().replace('```json', '').replace('```', '').strip()
         insights = json.loads(text)
-        print("✓ Comprehensive insights generated")
+        
+        # Validate that URLs are included
+        has_urls = False
+        if insights.get('career_paths'):
+            has_urls = any(path.get('learn_more_url') for path in insights['career_paths'])
+        
+        if not has_urls:
+            print("⚠️  No URLs in response, adding fallback URLs...")
+            insights = add_fallback_urls(insights, domain)
+        
+        print("✓ Comprehensive insights with URLs generated")
         return insights
         
     except Exception as e:
         print(f"⚠️  Insights fallback: {e}")
-        return get_fallback_insights(domain, total_correct)
+        return get_fallback_insights_with_urls(domain, total_correct)
 
-def get_fallback_insights(domain, score):
-    """Fallback insights if API fails"""
+def add_fallback_urls(insights, domain):
+    """Add fallback URLs if Gemini didn't provide them"""
+    
+    # Career path URLs
+    career_url_map = {
+        'programming': 'https://www.coursera.org/career-paths/software-developer',
+        'analytics': 'https://www.coursera.org/career-paths/data-analyst',
+        'testing': 'https://www.coursera.org/career-paths/software-tester',
+        'technical': 'https://www.coursera.org/career-paths/technical-support'
+    }
+    
+    if insights.get('career_paths'):
+        for path in insights['career_paths']:
+            if not path.get('learn_more_url'):
+                path['learn_more_url'] = career_url_map.get(domain, 'https://www.linkedin.com/jobs')
+    
+    # Action plan URLs
+    action_urls = [
+        'https://leetcode.com/problemset/all/',
+        'https://www.coursera.org',
+        'https://github.com/explore',
+        'https://www.hackerrank.com/domains/tutorials',
+        'https://stackoverflow.com/questions',
+        'https://dev.to'
+    ]
+    
+    if insights.get('action_plan'):
+        url_idx = 0
+        for plan in insights['action_plan']:
+            if 'actions' in plan:
+                new_actions = []
+                for action in plan['actions']:
+                    if isinstance(action, str):
+                        new_actions.append({
+                            'text': action,
+                            'url': action_urls[url_idx % len(action_urls)]
+                        })
+                        url_idx += 1
+                    else:
+                        if not action.get('url'):
+                            action['url'] = action_urls[url_idx % len(action_urls)]
+                            url_idx += 1
+                        new_actions.append(action)
+                plan['actions'] = new_actions
+    
+    # Learning resources URLs
+    resource_urls = {
+        'Course': 'https://www.udemy.com',
+        'Practice': 'https://leetcode.com',
+        'Book/Article': 'https://medium.com',
+        'Project': 'https://github.com/explore',
+        'Community': 'https://discord.com',
+        'Documentation': 'https://developer.mozilla.org'
+    }
+    
+    if insights.get('learning_resources'):
+        for resource in insights['learning_resources']:
+            if not resource.get('url'):
+                resource['url'] = resource_urls.get(resource['type'], 'https://www.google.com/search?q=' + resource['title'].replace(' ', '+'))
+    
+    return insights
+
+def get_fallback_insights_with_urls(domain, score):
+    """Fallback insights with URLs if API fails"""
     percentage = round((score / 30) * 100)
     
     return {
@@ -792,43 +934,73 @@ def get_fallback_insights(domain, score):
         "career_paths": [
             {
                 "title": "Software Developer",
-                "description": "Build applications and solve complex problems with code",
-                "growth": "High demand with excellent salary growth potential"
+                "description": "Build applications and solve complex problems with code. This role involves designing, coding, testing, and maintaining software systems across various platforms and technologies.",
+                "growth": "High demand with excellent salary growth potential and opportunities to specialize",
+                "learn_more_url": "https://www.coursera.org/career-paths/software-developer"
             },
             {
                 "title": "Quality Assurance Engineer",
-                "description": "Ensure software quality through testing and automation",
-                "growth": "Stable career with growing automation opportunities"
+                "description": "Ensure software quality through testing and automation. Work on creating test plans, identifying bugs, and implementing automated testing frameworks.",
+                "growth": "Stable career with growing automation opportunities and transition to DevOps roles",
+                "learn_more_url": "https://www.coursera.org/career-paths/software-tester"
             },
             {
                 "title": "Technical Analyst",
-                "description": "Bridge gap between business and technology teams",
-                "growth": "Versatile role with transition to various tech positions"
+                "description": "Bridge gap between business and technology teams. Analyze requirements, design solutions, and ensure technical implementations meet business needs.",
+                "growth": "Versatile role with transition opportunities to various tech positions",
+                "learn_more_url": "https://www.linkedin.com/jobs/technical-analyst-jobs"
             }
         ],
         "action_plan": [
             {
                 "phase": "Immediate (0-3 months)",
                 "actions": [
-                    "Solve 2-3 LeetCode problems daily",
-                    "Complete one online course in your domain",
-                    "Build a portfolio project"
+                    {
+                        "text": "Solve 2-3 LeetCode problems daily focusing on arrays and strings",
+                        "url": "https://leetcode.com/problemset/all/"
+                    },
+                    {
+                        "text": "Complete Python/Java fundamentals course on Coursera",
+                        "url": "https://www.coursera.org/courses?query=programming%20fundamentals"
+                    },
+                    {
+                        "text": "Build a portfolio project (todo app, calculator, or simple game)",
+                        "url": "https://github.com/practical-tutorials/project-based-learning"
+                    }
                 ]
             },
             {
                 "phase": "Short-term (3-6 months)",
                 "actions": [
-                    "Contribute to open-source projects",
-                    "Attend tech meetups and networking events",
-                    "Master one programming framework deeply"
+                    {
+                        "text": "Contribute to open-source projects on GitHub",
+                        "url": "https://github.com/topics/good-first-issue"
+                    },
+                    {
+                        "text": "Join tech communities and attend meetups (Discord, Reddit, local events)",
+                        "url": "https://www.meetup.com/topics/software-development/"
+                    },
+                    {
+                        "text": "Master one framework deeply (React, Django, Spring Boot, etc.)",
+                        "url": "https://www.freecodecamp.org"
+                    }
                 ]
             },
             {
                 "phase": "Long-term (6-12 months)",
                 "actions": [
-                    "Prepare for technical interviews at target companies",
-                    "Build 2-3 significant portfolio projects",
-                    "Consider relevant certifications in your field"
+                    {
+                        "text": "Prepare for technical interviews with system design practice",
+                        "url": "https://www.educative.io/courses/grokking-the-system-design-interview"
+                    },
+                    {
+                        "text": "Build 2-3 significant full-stack portfolio projects",
+                        "url": "https://www.youtube.com/results?search_query=full+stack+project+tutorial"
+                    },
+                    {
+                        "text": "Obtain relevant certifications (AWS, Azure, or language-specific)",
+                        "url": "https://aws.amazon.com/certification/"
+                    }
                 ]
             }
         ],
@@ -837,31 +1009,49 @@ def get_fallback_insights(domain, score):
                 "type": "Course",
                 "title": "CS50 - Introduction to Computer Science",
                 "platform": "Harvard/edX",
-                "focus": "Strong programming fundamentals"
+                "focus": "Strong programming fundamentals and problem-solving",
+                "url": "https://www.edx.org/cs50"
             },
             {
                 "type": "Practice",
-                "title": "LeetCode Premium",
-                "platform": "leetcode.com",
-                "focus": "Algorithm and data structure mastery"
+                "title": "LeetCode - Algorithm Practice",
+                "platform": "LeetCode",
+                "focus": "Algorithm and data structure mastery for interviews",
+                "url": "https://leetcode.com/problemset/all/"
             },
             {
-                "type": "Book",
+                "type": "Book/Article",
                 "title": "Cracking the Coding Interview",
-                "platform": "Amazon/Library",
-                "focus": "Interview preparation and problem-solving"
+                "platform": "Amazon",
+                "focus": "Interview preparation and problem-solving patterns",
+                "url": "https://www.amazon.com/Cracking-Coding-Interview-Programming-Questions/dp/0984782850"
             },
             {
                 "type": "Project",
-                "title": "Build a Full-Stack Application",
-                "platform": "GitHub",
-                "focus": "End-to-end development skills"
+                "title": "Build a Full-Stack Application Tutorial",
+                "platform": "freeCodeCamp",
+                "focus": "End-to-end development skills with real deployment",
+                "url": "https://www.freecodecamp.org/news/tag/full-stack/"
+            },
+            {
+                "type": "Community",
+                "title": "r/learnprogramming - Programming Community",
+                "platform": "Reddit",
+                "focus": "Get help, share progress, and network with learners",
+                "url": "https://www.reddit.com/r/learnprogramming/"
+            },
+            {
+                "type": "Documentation",
+                "title": "MDN Web Docs / Official Language Documentation",
+                "platform": "Mozilla / Official Sites",
+                "focus": "Comprehensive reference for web technologies and languages",
+                "url": "https://developer.mozilla.org/"
             }
         ]
     }
 
 
-# ==================== NEW ENDPOINT FOR SHARE RESULTS ====================
+# ==================== SHARED RESULTS ENDPOINT ====================
 
 @app.route('/api/results/<result_id>', methods=['GET'])
 def get_result_details(result_id):
@@ -906,4 +1096,4 @@ def get_result_details(result_id):
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    app.run(debug=os.getenv('FLASK_ENV') == 'development', port=port, host='0.0.0.0')
+    app.run(debug=os.getenv('FLASK_ENV') == 'development', port=port, host='0.0.0.0') 
