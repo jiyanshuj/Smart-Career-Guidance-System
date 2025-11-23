@@ -8,7 +8,7 @@ import ResultPage from './components/ResultPage';
 import { Home, User } from 'lucide-react';
 
 const CLERK_PUBLISHABLE_KEY = 'pk_test_Y29udGVudC1lbXUtMTguY2xlcmsuYWNjb3VudHMuZGV2JA';
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
 
 // Floating Stars Background Component
 const FloatingStarsBackground = () => {
@@ -167,8 +167,8 @@ const NavBar = ({ page, setPage, scrollY, isSignedIn }) => {
               <button
                 onClick={() => setPage('home')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${page === 'home'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'text-gray-300 hover:bg-white/10'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                  : 'text-gray-300 hover:bg-white/10'
                   }`}
               >
                 <Home className="w-4 h-4" />
@@ -178,8 +178,8 @@ const NavBar = ({ page, setPage, scrollY, isSignedIn }) => {
                 <button
                   onClick={() => setPage('profile')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${page === 'profile'
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                      : 'text-gray-300 hover:bg-white/10'
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                    : 'text-gray-300 hover:bg-white/10'
                     }`}
                 >
                   <User className="w-4 h-4" />

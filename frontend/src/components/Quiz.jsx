@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
 
 const apiCall = async (endpoint, options = {}) => {
   const { getToken } = options.auth || {};
@@ -171,15 +171,15 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
                 key={idx}
                 onClick={() => handleAnswer(question.id, idx)}
                 className={`w-full text-left p-4 rounded-lg border-2 transition-all ${answers[question.id] === idx
-                    ? 'border-indigo-500 bg-indigo-500/20 shadow-lg shadow-indigo-500/20'
-                    : 'border-gray-700 hover:border-indigo-500/50 hover:bg-gray-800/50'
+                  ? 'border-indigo-500 bg-indigo-500/20 shadow-lg shadow-indigo-500/20'
+                  : 'border-gray-700 hover:border-indigo-500/50 hover:bg-gray-800/50'
                   }`}
               >
                 <div className="flex items-center">
                   <div
                     className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${answers[question.id] === idx
-                        ? 'border-indigo-500 bg-indigo-500'
-                        : 'border-gray-600'
+                      ? 'border-indigo-500 bg-indigo-500'
+                      : 'border-gray-600'
                       }`}
                   >
                     {answers[question.id] === idx && (
@@ -229,8 +229,8 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
                 key={idx}
                 onClick={() => setCurrentQuestion(idx)}
                 className={`w-10 h-10 rounded-lg font-semibold transition-all ${answers[q.id] !== undefined
-                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/50'
-                    : 'bg-gray-800 text-gray-400 border border-gray-700'
+                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/50'
+                  : 'bg-gray-800 text-gray-400 border border-gray-700'
                   } ${currentQuestion === idx ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-black' : ''
                   }`}
               >
