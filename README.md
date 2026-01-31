@@ -83,10 +83,10 @@ Smart Career Guidance System is a comprehensive platform that leverages **Google
 
 *Select difficulty level and programming language before starting*
 
-### ⏱️ Progress Bar & Questions
+### ⏱️ Progress Bar & History
 <img src="./images/Progress-bar.png" alt="Progress Bar" width="100%" style="border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 
-*Real-time progress tracking during quiz*
+*Real-time progress tracking and quiz attempt history*
 
 ### ❓ Quiz Questions
 <img src="./images/Questions.png" alt="Quiz Questions" width="100%" style="border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
