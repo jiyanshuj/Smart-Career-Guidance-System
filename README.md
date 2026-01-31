@@ -490,7 +490,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
-Thanks to **Arunima** for the ideation and concept!
+Thanks to [**Arunima Joshi**](https://github.com/ArunimaJoshi) for the ideation and concept!
 
 - **Google Gemini AI** for intelligent question generation
 - **Supabase** for reliable cloud database
@@ -532,6 +532,6 @@ If you find this project helpful, please give it a ⭐ on GitHub!
 
 **Live Demo**: [https://smart-career-guidance-system.vercel.app/](https://smart-career-guidance-system.vercel.app/)
 
-Ideation by **Arunima** ✨
+Ideation by [**Arunima Joshi**](https://github.com/ArunimaJoshi✨
 
 </div>
