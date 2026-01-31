@@ -488,13 +488,9 @@ python main.py --debug    # Run with debugging
 
 This project is licensed under the MIT License - see LICENSE file for details.
 
-## � Credits
+## 🙏 Acknowledgments
 
-### Made By
-- **Development & Implementation**: You
-- **Ideation & Concept**: Arunima
-
-### �🙏 Acknowledgments
+Thanks to **Arunima** for the ideation and concept!
 
 - **Google Gemini AI** for intelligent question generation
 - **Supabase** for reliable cloud database
@@ -503,14 +499,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 - **React & Flask communities** for amazing frameworks
 - All contributors and testers
 
-## 📧 Contact & Support
-
-### Questions or Issues?
-- 📧 Email: support@example.com
-- 🐛 GitHub Issues: [Report a bug](https://github.com/yourusername/smart-career-guidance-system/issues)
-- 💬 Discussions: [Join community](https://github.com/yourusername/smart-career-guidance-system/discussions)
-
-## 🗺️ Roadmap
+## ️ Roadmap
 
 ### Upcoming Features
 - [ ] Multi-language support (i18n)
@@ -543,6 +532,6 @@ If you find this project helpful, please give it a ⭐ on GitHub!
 
 **Live Demo**: [https://smart-career-guidance-system.vercel.app/](https://smart-career-guidance-system.vercel.app/)
 
-Made with ❤️ by **You** | Ideation by **Arunima**
+Ideation by **Arunima** ✨
 
 </div>
