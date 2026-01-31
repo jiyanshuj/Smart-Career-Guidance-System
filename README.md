@@ -532,6 +532,6 @@ If you find this project helpful, please give it a ⭐ on GitHub!
 
 **Live Demo**: [https://smart-career-guidance-system.vercel.app/](https://smart-career-guidance-system.vercel.app/)
 
-Ideation by [**Arunima Joshi**](https://github.com/ArunimaJoshi✨
+Ideation by [**Arunima Joshi**](https://github.com/ArunimaJoshi)✨
 
 </div>
