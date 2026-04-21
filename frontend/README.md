@@ -221,7 +221,7 @@ Multiple tabs for comprehensive analysis:
 
 ### API Base URL
 ```javascript
-const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
+const API_BASE = 'https://smart-career-guidance-system-thig.onrender.com/api';
 ```
 
 ### Endpoints Used
