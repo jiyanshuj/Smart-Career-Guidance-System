@@ -43,7 +43,9 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [answers, quiz]);
+    // The timer intentionally reads the latest submit handler through the quiz lifecycle.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quiz]);
 
   const generateQuiz = async (difficulty, language) => {
     try {
@@ -70,7 +72,8 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
   };
 
   useEffect(() => {
-    generateQuiz(difficulty, language);
+    queueMicrotask(() => generateQuiz(difficulty, language));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [difficulty, language]);
 
   const handleAnswer = (questionId, answerIndex) => {
@@ -110,9 +113,9 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
 
   if (loading || !quiz) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-transparent">
         <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border border-white/20 border-t-white"></div>
           <p className="text-xl">Generating your personalized quiz...</p>
           <p className="text-sm text-gray-400 mt-2">This may take a few moments</p>
         </div>
@@ -126,27 +129,27 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
   const seconds = timeLeft % 60;
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-transparent">
       {/* Header */}
-      <div className="bg-gray-900/80 backdrop-blur-xl border-b border-gray-700 shadow-2xl sticky top-0 z-10">
+      <div className="sticky top-0 z-10 border-b border-white/10 bg-black/70 shadow-2xl backdrop-blur-md">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-indigo-400" />
+              <Clock className="h-5 w-5 text-white/60" />
               <span className={`font-semibold ${timeLeft < 300 ? 'text-red-400' : 'text-white'}`}>
                 {minutes}:{seconds.toString().padStart(2, '0')}
               </span>
             </div>
-            <div className="text-gray-300 font-medium">
+            <div className="font-medium text-white/65">
               Question {currentQuestion + 1} of {quiz.total}
             </div>
-            <div className="text-green-400 font-medium">
+            <div className="font-medium text-white/65">
               Answered: {Object.keys(answers).length}/{quiz.total}
             </div>
           </div>
-          <div className="w-full bg-gray-800 rounded-full h-2">
+          <div className="h-1.5 w-full rounded-full bg-white/10">
             <div
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+              className="h-1.5 rounded-full bg-white transition-all duration-300"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
@@ -155,12 +158,12 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
 
       {/* Question */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-8">
+        <div className="rounded-[26px] border border-white/15 bg-black/50 p-5 shadow-2xl backdrop-blur-md sm:p-8">
           <div className="mb-6">
-            <span className="inline-block bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full text-sm font-semibold mb-4 border border-indigo-500/30">
+            <span className="mb-4 inline-block rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-sm font-semibold text-white/65">
               {question.category.toUpperCase()}
             </span>
-            <h2 className="text-2xl font-bold text-white mb-4">
+            <h2 className="mb-4 text-2xl font-semibold tracking-tight text-white">
               {question.question}
             </h2>
           </div>
@@ -170,20 +173,20 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
               <button
                 key={idx}
                 onClick={() => handleAnswer(question.id, idx)}
-                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${answers[question.id] === idx
-                  ? 'border-indigo-500 bg-indigo-500/20 shadow-lg shadow-indigo-500/20'
-                  : 'border-gray-700 hover:border-indigo-500/50 hover:bg-gray-800/50'
+                className={`w-full rounded-2xl border p-4 text-left transition-all ${answers[question.id] === idx
+                  ? 'border-white bg-white/[0.12] shadow-lg shadow-white/10'
+                  : 'border-white/10 bg-white/[0.02] hover:border-white/40 hover:bg-white/[0.07]'
                   }`}
               >
                 <div className="flex items-center">
                   <div
-                    className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${answers[question.id] === idx
-                      ? 'border-indigo-500 bg-indigo-500'
-                      : 'border-gray-600'
+                    className={`mr-3 flex h-6 w-6 items-center justify-center rounded-full border-2 ${answers[question.id] === idx
+                      ? 'border-white bg-white'
+                      : 'border-white/30'
                       }`}
                   >
                     {answers[question.id] === idx && (
-                      <CheckCircle className="w-4 h-4 text-white" />
+                      <CheckCircle className="h-4 w-4 text-black" />
                     )}
                   </div>
                   <span className="text-white">{option}</span>
@@ -196,7 +199,7 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
             <button
               onClick={() => setCurrentQuestion((prev) => Math.max(0, prev - 1))}
               disabled={currentQuestion === 0}
-              className="px-6 py-3 bg-gray-800 text-gray-300 rounded-lg font-semibold hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-gray-700"
+              className="rounded-full border border-white/15 bg-white/[0.04] px-6 py-3 font-semibold text-white/70 transition-all hover:border-white/40 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Previous
             </button>
@@ -205,14 +208,14 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg shadow-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-full bg-white px-6 py-3 font-semibold text-black transition-all hover:-translate-y-0.5 hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : 'Submit Quiz'}
               </button>
             ) : (
               <button
                 onClick={() => setCurrentQuestion((prev) => Math.min(quiz.total - 1, prev + 1))}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/50"
+                className="rounded-full bg-white px-6 py-3 font-semibold text-black transition-all hover:-translate-y-0.5 hover:bg-white/85"
               >
                 Next
               </button>
@@ -221,17 +224,17 @@ const QuizPage = ({ onComplete, auth, difficulty, language }) => {
         </div>
 
         {/* Answer Grid */}
-        <div className="mt-6 bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+        <div className="mt-6 rounded-[26px] border border-white/15 bg-black/50 p-5 shadow-xl backdrop-blur-md sm:p-6">
           <h3 className="font-semibold text-white mb-4">Answer Overview</h3>
           <div className="grid grid-cols-10 gap-2">
             {quiz.questions.map((q, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentQuestion(idx)}
-                className={`w-10 h-10 rounded-lg font-semibold transition-all ${answers[q.id] !== undefined
-                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/50'
-                  : 'bg-gray-800 text-gray-400 border border-gray-700'
-                  } ${currentQuestion === idx ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-black' : ''
+                className={`h-10 w-10 rounded-xl font-semibold transition-all ${answers[q.id] !== undefined
+                  ? 'bg-white text-black shadow-lg shadow-white/10'
+                  : 'border border-white/10 bg-white/[0.04] text-white/45 hover:border-white/40 hover:text-white'
+                  } ${currentQuestion === idx ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''
                   }`}
               >
                 {idx + 1}

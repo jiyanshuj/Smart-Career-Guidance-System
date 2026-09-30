@@ -1,210 +1,80 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClerkProvider, SignInButton, SignUpButton, UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import HomePage from './components/Home';
 import ProfilePage from './components/Profile';
 import QuizPage from './components/Quiz';
 import QuizConfig from './components/QuizConfig';
 import ResultPage from './components/ResultPage';
-import { Home, User } from 'lucide-react';
+import VortexBackground from './components/VortexBackground';
+import { ChevronsRight, Sparkles } from 'lucide-react';
 
 const CLERK_PUBLISHABLE_KEY = 'pk_test_Y29udGVudC1lbXUtMTguY2xlcmsuYWNjb3VudHMuZGV2JA';
 const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
 
-// Floating Stars Background Component
-const FloatingStarsBackground = () => {
-  const canvasRef = useRef(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const starsRef = useRef([]);
-  const mouseRef = useRef({ x: 0, y: 0 });
-  const animationRef = useRef(null);
-
-  useEffect(() => {
-    const updateDimensions = () => {
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
-    };
-
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, []);
-
-  useEffect(() => {
-    if (!dimensions.width || !dimensions.height) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-
-    if (starsRef.current.length === 0) {
-      starsRef.current = Array.from({ length: 150 }, () => ({
-        x: Math.random() * dimensions.width,
-        y: Math.random() * dimensions.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 2.5 + 0.5,
-        opacity: Math.random() * 0.5 + 0.3,
-        twinkleSpeed: Math.random() * 0.02 + 0.01
-      }));
-    }
-
-    const handleMouseMove = (e) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-
-    const animate = () => {
-      ctx.clearRect(0, 0, dimensions.width, dimensions.height);
-
-      starsRef.current.forEach((star) => {
-        star.x += star.vx;
-        star.y += star.vy;
-
-        if (star.x < 0) star.x = dimensions.width;
-        if (star.x > dimensions.width) star.x = 0;
-        if (star.y < 0) star.y = dimensions.height;
-        if (star.y > dimensions.height) star.y = 0;
-
-        star.opacity += star.twinkleSpeed;
-        if (star.opacity > 0.8 || star.opacity < 0.2) {
-          star.twinkleSpeed *= -1;
-        }
-
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-        ctx.fill();
-      });
-
-      const maxDistance = 120;
-      ctx.lineWidth = 1;
-
-      for (let i = 0; i < starsRef.current.length; i++) {
-        for (let j = i + 1; j < starsRef.current.length; j++) {
-          const star1 = starsRef.current[i];
-          const star2 = starsRef.current[j];
-
-          const dx = star1.x - star2.x;
-          const dy = star1.y - star2.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < maxDistance) {
-            const opacity = (1 - distance / maxDistance) * 0.3;
-            ctx.strokeStyle = `rgba(59, 130, 246, ${opacity})`;
-            ctx.beginPath();
-            ctx.moveTo(star1.x, star1.y);
-            ctx.lineTo(star2.x, star2.y);
-            ctx.stroke();
-          }
-        }
-      }
-
-      const mouseMaxDistance = 150;
-      starsRef.current.forEach((star) => {
-        const dx = mouseRef.current.x - star.x;
-        const dy = mouseRef.current.y - star.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < mouseMaxDistance) {
-          const opacity = (1 - distance / mouseMaxDistance) * 0.5;
-          ctx.strokeStyle = `rgba(168, 85, 247, ${opacity})`;
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(mouseRef.current.x, mouseRef.current.y);
-          ctx.lineTo(star.x, star.y);
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.arc(star.x, star.y, star.size + 2, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(168, 85, 247, ${opacity * 0.3})`;
-          ctx.fill();
-        }
-      });
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [dimensions]);
+const NavBar = ({ page, setPage, isSignedIn, scrolled }) => {
+  const link = (active) =>
+    `group relative text-[15px] font-medium tracking-[-0.02em] transition-all duration-200 ${
+      active ? 'text-white' : 'text-white/65 hover:text-white'
+    } after:absolute after:-bottom-2 after:left-1/2 after:h-px after:w-[calc(100%+8px)] after:-translate-x-1/2 after:bg-white/80 after:transition-transform after:duration-200 ${
+      active ? 'after:scale-x-100' : 'after:scale-x-0 group-hover:after:scale-x-100'
+    }`;
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={dimensions.width}
-      height={dimensions.height}
-      className="fixed inset-0 pointer-events-none z-0"
-      style={{ background: 'transparent' }}
-    />
-  );
-};
-
-// Updated NavBar with conditional auth buttons
-const NavBar = ({ page, setPage, scrollY, isSignedIn }) => {
-  const isScrolled = scrollY > 50;
-
-  return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black/80 backdrop-blur-md border-b border-white/10' : 'bg-black/60 backdrop-blur-sm border-b border-white/5'
+    <nav className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${scrolled ? 'px-3 pt-3' : 'px-0 pt-0'}`}>
+      <div
+        className={`mx-auto grid max-w-[1500px] items-center transition-all duration-300 ${
+          scrolled
+            ? 'grid-cols-[1fr_auto_1fr] rounded-[26px] border border-white/15 bg-black/80 px-6 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-md'
+            : 'grid-cols-[1fr_auto_1fr] border-b border-white/5 bg-transparent px-6 py-3.5 shadow-none backdrop-blur-none'
         }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">CareerQuiz</h1>
-            <div className="flex gap-4">
-              <button
-                onClick={() => setPage('home')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${page === 'home'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                  : 'text-gray-300 hover:bg-white/10'
-                  }`}
-              >
-                <Home className="w-4 h-4" />
-                Home
-              </button>
-              {isSignedIn && (
-                <button
-                  onClick={() => setPage('profile')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${page === 'profile'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'text-gray-300 hover:bg-white/10'
-                    }`}
-                >
-                  <User className="w-4 h-4" />
-                  Profile
-                </button>
-              )}
-            </div>
-          </div>
+      >
+        {/* Logo */}
+        <button
+          onClick={() => setPage('home')}
+          title="smart-career-guidance-system"
+          aria-label="Smart Career Guidance System home"
+          className="group flex items-center gap-3 justify-self-start transition-opacity duration-200 hover:opacity-90"
+        >
+          <span className={`grid place-items-center bg-white text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition-transform duration-200 group-hover:rotate-6 ${
+            scrolled ? 'h-7 w-7 rounded-md border border-white/20' : 'h-6 w-6 rounded-sm border border-white/15'
+          }`}>
+            <Sparkles className={scrolled ? 'h-4 w-4' : 'h-3.5 w-3.5'} strokeWidth={2.8} />
+          </span>
+          <span className="hidden font-semibold uppercase tracking-[0.12em] text-white min-[420px]:block sm:text-[15px]">
+            Smart Career
+          </span>
+          <span className="sr-only">Guidance System</span>
+        </button>
 
-          {/* Conditional Auth Buttons */}
+        {/* Centered links */}
+        <div className="flex items-center gap-7">
+          <button onClick={() => setPage('home')} className={link(page === 'home')}>Home</button>
+          {isSignedIn && (
+            <button onClick={() => setPage('profile')} className={link(page === 'profile')}>Profile</button>
+          )}
+        </div>
+
+        {/* Auth */}
+        <div className="flex items-center gap-3 justify-self-end">
           {isSignedIn ? (
             <UserButton afterSignOutUrl="/" />
           ) : (
-            <div className="flex gap-3">
+            <>
               <SignInButton mode="modal">
-                <button className="text-white px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
+                <button className="rounded-full px-3 py-2 text-[15px] font-medium text-white/70 transition-all duration-200 hover:text-white hover:bg-white/5">
                   Sign In
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all">
-                  Sign Up
+                <button className={`inline-flex items-center gap-2 rounded-full border text-white transition-all duration-200 hover:-translate-y-0.5 ${
+                  scrolled
+                    ? 'border-white/20 bg-white/5 px-5 py-2.5 text-[12px] uppercase tracking-[0.12em] hover:bg-white/10 hover:shadow-[0_0_14px_rgba(255,255,255,0.08)]'
+                    : 'border-white/20 bg-white/5 px-5 py-2.5 text-[12px] uppercase tracking-[0.12em] hover:bg-white/10 hover:shadow-[0_0_14px_rgba(255,255,255,0.08)]'
+                }`}>
+                  Get Started <ChevronsRight className="h-3.5 w-3.5" />
                 </button>
               </SignUpButton>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -218,24 +88,21 @@ const AppContent = () => {
   const [page, setPage] = useState('home');
   const [result, setResult] = useState(null);
   const [synced, setSynced] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
   const [quizConfig, setQuizConfig] = useState({ difficulty: 'moderate', language: 'python' });
 
   const auth = { getToken };
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
-    if (isSignedIn && user && !synced) {
-      syncUser();
-    }
+    if (isSignedIn && user && !synced) syncUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, user]);
 
   const syncUser = async () => {
@@ -255,20 +122,13 @@ const AppContent = () => {
     }
   };
 
-  // Handler for starting quiz with auth check
   const handleStartQuiz = () => {
-    if (!isSignedIn) {
-      // This will trigger Clerk's sign-in modal
-      // After successful sign-in, user will remain on home page
-      // They'll need to click the button again
-      return;
-    }
+    if (!isSignedIn) return; // Clerk modal handles sign-in
     setPage('config');
   };
 
   const renderPage = () => {
-    // Block access to authenticated-only pages
-    if (!isSignedIn && (page === 'config' || page === 'quiz' || page === 'result' || page === 'profile')) {
+    if (!isSignedIn && ['config', 'quiz', 'result', 'profile'].includes(page)) {
       return <HomePage onStartQuiz={handleStartQuiz} />;
     }
 
@@ -287,10 +147,7 @@ const AppContent = () => {
     if (page === 'quiz') {
       return (
         <QuizPage
-          onComplete={(res) => {
-            setResult(res);
-            setPage('result');
-          }}
+          onComplete={(res) => { setResult(res); setPage('result'); }}
           auth={auth}
           difficulty={quizConfig.difficulty}
           language={quizConfig.language}
@@ -302,34 +159,27 @@ const AppContent = () => {
       return (
         <ResultPage
           result={result}
-          onRetakeQuiz={() => {
-            setResult(null);
-            setPage('config');
-          }}
+          onRetakeQuiz={() => { setResult(null); setPage('config'); }}
           onViewProfile={() => setPage('profile')}
         />
       );
     }
 
-    if (page === 'profile') {
-      return <ProfilePage auth={auth} />;
-    }
+    if (page === 'profile') return <ProfilePage auth={auth} />;
 
     return <HomePage onStartQuiz={handleStartQuiz} />;
   };
 
+  const showNav = !['quiz', 'result', 'config'].includes(page);
+
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
-      <FloatingStarsBackground />
+    <div className="relative min-h-screen overflow-x-hidden bg-black font-sans text-white">
+      {/* ONE shared background for every page */}
+      <VortexBackground />
 
-      {/* Always show NavBar, but hide on quiz/result/config pages */}
-      {page !== 'quiz' && page !== 'result' && page !== 'config' && (
-        <NavBar page={page} setPage={setPage} scrollY={scrollY} isSignedIn={isSignedIn} />
-      )}
+      {showNav && <NavBar page={page} setPage={setPage} isSignedIn={isSignedIn} scrolled={scrolled} />}
 
-      <div className={`relative z-10 ${page !== 'quiz' && page !== 'result' && page !== 'config' ? 'pt-20' : ''}`}>
-        {renderPage()}
-      </div>
+      <div className={`relative z-10 ${showNav ? 'pt-20' : ''}`}>{renderPage()}</div>
     </div>
   );
 };

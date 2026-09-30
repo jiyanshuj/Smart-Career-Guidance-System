@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.liquid-metal-cta {
+	display: inline-block;
+	width: 176px;
+	height: 52px;
+	vertical-align: middle;
+}
+
+.liquid-metal-cta .liquid-metal-button__frame {
+	border-radius: 999px;
+}
+
+@media (max-width: 640px) {
+	.liquid-metal-cta {
+		width: 164px;
+		height: 50px;
+	}
+}

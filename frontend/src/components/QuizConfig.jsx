@@ -15,48 +15,49 @@ const QuizConfig = ({ onStart, onBack }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
-        <h2 className="text-3xl font-bold text-white mb-6">Configure Your Test</h2>
+    <div className="flex min-h-screen items-center justify-center bg-transparent px-4 py-10">
+      <div className="w-full max-w-2xl rounded-[28px] border border-white/15 bg-black/55 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-8">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Career assessment</p>
+        <h2 className="mb-6 text-3xl font-semibold tracking-tight text-white">Configure your test</h2>
         
         <div className="mb-6">
-          <label className="block text-gray-200 font-semibold mb-3">Difficulty Level</label>
+          <label className="mb-3 block text-sm font-medium text-white/75">Difficulty level</label>
           <div className="grid grid-cols-3 gap-4">
             {difficulties.map((diff) => (
               <button
                 key={diff.value}
                 onClick={() => setDifficulty(diff.value)}
-                className={`p-4 rounded-lg border-2 transition-all ${
+                className={`rounded-2xl border p-4 text-left transition-all ${
                   difficulty === diff.value
-                    ? 'border-indigo-500 bg-indigo-500/20 shadow-lg shadow-indigo-500/50'
-                    : 'border-gray-700 hover:border-indigo-500/50 hover:bg-gray-800/50'
+                    ? 'border-white bg-white text-black shadow-lg shadow-white/10'
+                    : 'border-white/15 bg-white/[0.03] hover:border-white/45 hover:bg-white/[0.08]'
                 }`}
               >
-                <div className="font-semibold text-white">{diff.label}</div>
-                <div className="text-sm text-gray-400">{diff.desc}</div>
+                <div className={`font-semibold ${difficulty === diff.value ? 'text-black' : 'text-white'}`}>{diff.label}</div>
+                <div className={`text-sm ${difficulty === diff.value ? 'text-black/60' : 'text-white/45'}`}>{diff.desc}</div>
               </button>
             ))}
           </div>
         </div>
 
         <div className="mb-8">
-          <label className="block text-gray-200 font-semibold mb-3">Programming Language</label>
+          <label className="mb-3 block text-sm font-medium text-white/75">Programming language</label>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="w-full p-3 bg-gray-800/80 backdrop-blur-sm border-2 border-gray-700 rounded-lg focus:border-indigo-500 focus:outline-none text-white"
+            className="w-full rounded-xl border border-white/15 bg-white/[0.05] p-3 text-white outline-none transition focus:border-white/60 focus:bg-white/[0.08]"
           >
             {languages.map((lang) => (
-              <option key={lang} value={lang.toLowerCase()} className="bg-gray-800">
+              <option key={lang} value={lang.toLowerCase()} className="bg-black">
                 {lang}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-4 mb-6">
-          <h3 className="font-semibold text-indigo-300 mb-2">Test Details:</h3>
-          <ul className="text-sm text-gray-300 space-y-1">
+        <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <h3 className="mb-2 font-semibold text-white">Test details</h3>
+          <ul className="space-y-1 text-sm text-white/55">
             <li>• 30 questions total</li>
             <li>• 5 questions each: OS, DBMS, Networks, Aptitude, Verbal</li>
             <li>• 5 programming questions in {language}</li>
@@ -64,16 +65,16 @@ const QuizConfig = ({ onStart, onBack }) => {
           </ul>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <button
             onClick={onBack}
-            className="flex-1 bg-gray-800 text-gray-300 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-all border border-gray-700"
+            className="flex-1 rounded-full border border-white/15 bg-white/[0.04] py-3 font-semibold text-white/70 transition-all hover:border-white/40 hover:bg-white/[0.08] hover:text-white"
           >
             Back
           </button>
           <button
             onClick={() => onStart(difficulty, language)}
-            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/50"
+            className="flex-1 rounded-full bg-white py-3 font-semibold text-black transition-all hover:-translate-y-0.5 hover:bg-white/85"
           >
             Start Quiz
           </button>

@@ -34,6 +34,8 @@ const ProfilePage = ({ auth }) => {
 
   useEffect(() => {
     fetchProfile();
+    // Profile data is loaded once when the page mounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfile = async () => {
@@ -53,8 +55,8 @@ const ProfilePage = ({ auth }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
+      <div className="flex min-h-screen items-center justify-center bg-transparent">
+        <div className="h-12 w-12 animate-spin rounded-full border border-white/20 border-t-white"></div>
       </div>
     );
   }
@@ -65,66 +67,66 @@ const ProfilePage = ({ auth }) => {
   })).reverse();
 
   return (
-    <div className="min-h-screen bg-black py-8 px-4">
+    <div className="min-h-screen bg-transparent px-4 py-8 sm:py-10">
       <div className="max-w-6xl mx-auto">
         {/* Profile Header */}
-        <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl p-8 mb-6 text-white">
+        <div className="mb-6 rounded-[28px] border border-white/15 bg-black/50 p-6 text-white shadow-2xl backdrop-blur-md sm:p-8">
           <div className="flex items-center gap-6">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-purple-500/50">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white text-2xl font-bold text-black shadow-lg shadow-white/10 sm:h-24 sm:w-24 sm:text-3xl">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </div>
             <div>
-              <h1 className="text-3xl font-bold mb-2">{user?.fullName}</h1>
-              <p className="text-gray-300">{user?.primaryEmailAddress?.emailAddress}</p>
+              <h1 className="mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">{user?.fullName}</h1>
+              <p className="text-white/55">{user?.primaryEmailAddress?.emailAddress}</p>
               {profile?.user?.degree && (
-                <p className="text-gray-400 mt-1">{profile.user.degree}</p>
+                <p className="mt-1 text-white/40">{profile.user.degree}</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-6">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
               label: 'Total Attempts',
               value: profile?.stats?.total_attempts || 0,
               icon: Target,
-              color: 'from-blue-500 to-blue-700',
+              color: 'bg-white',
             },
             {
               label: 'Average Score',
               value: `${profile?.stats?.average_score || 0}%`,
               icon: TrendingUp,
-              color: 'from-green-500 to-green-700',
+              color: 'bg-white',
             },
             {
               label: 'Best Score',
               value: `${profile?.stats?.best_score || 0}/30`,
               icon: Award,
-              color: 'from-yellow-500 to-yellow-700',
+              color: 'bg-white',
             },
             {
               label: 'Latest Domain',
               value: profile?.stats?.latest_domain?.split(' ')[0] || 'N/A',
               icon: Code,
-              color: 'from-purple-500 to-purple-700',
+              color: 'bg-white',
             },
           ].map((stat, idx) => (
-            <div key={idx} className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6 hover:shadow-2xl hover:border-gray-600 transition-all">
-              <div className={`bg-gradient-to-br ${stat.color} w-12 h-12 rounded-lg flex items-center justify-center mb-4 shadow-lg`}>
-                <stat.icon className="w-6 h-6 text-white" />
+            <div key={idx} className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md transition-all hover:-translate-y-1 hover:border-white/30 hover:bg-white/[0.06]">
+              <div className={`${stat.color} mb-4 flex h-10 w-10 items-center justify-center rounded-xl shadow-lg shadow-white/10`}>
+                <stat.icon className="h-5 w-5 text-black" />
               </div>
-              <div className="text-gray-400 text-sm mb-1">{stat.label}</div>
-              <div className="text-2xl font-bold text-white">{stat.value}</div>
+              <div className="mb-1 text-sm text-white/45">{stat.label}</div>
+              <div className="text-2xl font-semibold text-white">{stat.value}</div>
             </div>
           ))}
         </div>
 
         {/* Progress Chart */}
         {improvementData.length > 0 && (
-          <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6 mb-6">
-            <h3 className="text-xl font-bold text-white mb-4">Your Progress</h3>
+          <div className="mb-6 rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
+            <h3 className="mb-4 text-xl font-semibold text-white">Your progress</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={improvementData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -139,40 +141,40 @@ const ProfilePage = ({ auth }) => {
         )}
 
         {/* Recent Attempts */}
-        <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-white mb-4">Recent Attempts</h3>
+        <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
+          <h3 className="mb-4 text-xl font-semibold text-white">Recent attempts</h3>
           <div className="space-y-4">
             {attempts.slice(0, 5).map((attempt) => (
               <div
                 key={attempt.id}
-                className="bg-gray-800/60 backdrop-blur-sm border-2 border-gray-700 rounded-lg p-4 hover:border-indigo-500/50 hover:bg-gray-800/80 transition-all"
+                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition-all hover:border-white/35 hover:bg-white/[0.07]"
               >
                 <div className="flex justify-between items-center mb-2">
                   <div>
                     <div className="font-semibold text-white">
                       Score: {attempt.total_score}/30 ({attempt.percentage}%)
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-white/40">
                       {new Date(attempt.completed_at).toLocaleDateString()}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-indigo-400">
+                    <div className="font-semibold text-white">
                       {attempt.recommended_domain}
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-white/40">
                       {attempt.difficulty} • {attempt.language}
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-4 text-sm">
-                  <span className="text-blue-400">
+                    <span className="text-white/60">
                     Programming: {attempt.domain_scores.programming.toFixed(1)}
                   </span>
-                  <span className="text-green-400">
+                    <span className="text-white/60">
                     Analytics: {attempt.domain_scores.analytics.toFixed(1)}
                   </span>
-                  <span className="text-yellow-400">
+                    <span className="text-white/60">
                     Testing: {attempt.domain_scores.testing.toFixed(1)}
                   </span>
                 </div>

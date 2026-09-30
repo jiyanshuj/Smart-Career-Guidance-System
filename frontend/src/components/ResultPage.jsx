@@ -8,11 +8,11 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const getGrade = (percentage) => {
-    if (percentage >= 90) return { grade: 'A+', color: 'text-green-400', bgColor: 'bg-green-500/20' };
-    if (percentage >= 80) return { grade: 'A', color: 'text-green-500', bgColor: 'bg-green-500/20' };
-    if (percentage >= 70) return { grade: 'B', color: 'text-blue-400', bgColor: 'bg-blue-500/20' };
-    if (percentage >= 60) return { grade: 'C', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' };
-    return { grade: 'D', color: 'text-red-400', bgColor: 'bg-red-500/20' };
+    if (percentage >= 90) return { grade: 'A+', color: 'text-white', bgColor: 'bg-white/10' };
+    if (percentage >= 80) return { grade: 'A', color: 'text-white', bgColor: 'bg-white/10' };
+    if (percentage >= 70) return { grade: 'B', color: 'text-white', bgColor: 'bg-white/10' };
+    if (percentage >= 60) return { grade: 'C', color: 'text-white', bgColor: 'bg-white/10' };
+    return { grade: 'D', color: 'text-white', bgColor: 'bg-white/10' };
   };
 
   const gradeInfo = getGrade(result.percentage);
@@ -32,7 +32,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
     percentage: Math.round((result.category_breakdown[cat].correct / result.category_breakdown[cat].total) * 100)
   })) : [];
 
-  const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
+  const COLORS = ['#ffffff', '#bcbcbc', '#888888', '#666666', '#444444', '#aaaaaa'];
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/shared-results/${result.result_id}`;
@@ -68,40 +68,40 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
   const incorrectCount = filteredQuestions.length - correctCount;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-transparent px-4 py-8 sm:py-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-full mb-4 border border-green-500/30">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-white/70">
             <Trophy className="w-5 h-5" />
             <span className="font-semibold">Assessment Complete</span>
           </div>
-          <h1 className="text-5xl font-bold text-white mb-2">Your Results</h1>
-          <p className="text-gray-400">Comprehensive analysis of your performance</p>
+          <h1 className="mb-2 text-4xl font-semibold tracking-tight text-white sm:text-5xl">Your results</h1>
+          <p className="text-white/45">A clear view of your assessment performance</p>
         </div>
 
         {/* Score Overview Card */}
-        <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl p-8 mb-6">
+        <div className="mb-6 rounded-[28px] border border-white/15 bg-black/50 p-5 shadow-2xl backdrop-blur-md sm:p-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex-1">
-              <h2 className="text-3xl font-bold text-white mb-2">Overall Performance</h2>
-              <p className="text-gray-400 text-lg mb-4">
+              <h2 className="mb-2 text-3xl font-semibold tracking-tight text-white">Overall performance</h2>
+              <p className="mb-4 text-lg text-white/45">
                 {result.total_score} out of {result.total_questions} questions correct
               </p>
               
               {/* Stats Grid */}
               <div className="grid grid-cols-2 gap-4 mt-6">
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className="w-5 h-5 text-green-400" />
-                    <span className="text-green-400 font-semibold">Correct</span>
+                    <CheckCircle className="h-5 w-5 text-white" />
+                    <span className="font-semibold text-white/70">Correct</span>
                   </div>
                   <div className="text-3xl font-bold text-white">{result.total_score}</div>
                 </div>
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <XCircle className="w-5 h-5 text-red-400" />
-                    <span className="text-red-400 font-semibold">Incorrect</span>
+                    <XCircle className="h-5 w-5 text-white/60" />
+                    <span className="font-semibold text-white/60">Incorrect</span>
                   </div>
                   <div className="text-3xl font-bold text-white">
                     {result.total_questions - result.total_score}
@@ -112,11 +112,11 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
 
             {/* Grade Display */}
             <div className="text-center">
-              <div className={`w-40 h-40 rounded-full ${gradeInfo.bgColor} border-4 border-gray-700 flex flex-col items-center justify-center`}>
+              <div className={`flex h-36 w-36 flex-col items-center justify-center rounded-full border border-white/25 ${gradeInfo.bgColor} sm:h-40 sm:w-40`}>
                 <div className={`text-6xl font-bold ${gradeInfo.color}`}>
                   {gradeInfo.grade}
                 </div>
-                <div className="text-2xl font-semibold text-gray-300 mt-2">
+                <div className="mt-2 text-2xl font-semibold text-white/65">
                   {result.percentage}%
                 </div>
               </div>
@@ -124,31 +124,31 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
 
             {/* Recommended Domain */}
             <div className="flex-1">
-              <div className="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 rounded-lg p-6">
+              <div className="rounded-2xl border border-white/15 bg-white/[0.05] p-6">
                 <div className="flex items-center gap-3 mb-3">
-                  <Award className="w-6 h-6 text-indigo-400" />
+                  <Award className="h-6 w-6 text-white" />
                   <h3 className="text-lg font-semibold text-white">Recommended Path</h3>
                 </div>
-                <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+                <p className="text-2xl font-semibold text-white">
                   {result.recommended_domain}
                 </p>
-                <p className="text-gray-400 text-sm mt-2">Based on your strengths and performance</p>
+                <p className="mt-2 text-sm text-white/45">Based on your strengths and performance</p>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 justify-center mt-8 pt-6 border-t border-gray-700">
+          <div className="mt-8 flex flex-wrap justify-center gap-3 border-t border-white/10 pt-6">
             <button
               onClick={handleShare}
-              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all"
+              className="flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-black transition-all hover:-translate-y-0.5 hover:bg-white/85"
             >
               <Share2 className="w-5 h-5" />
               Share Results
             </button>
             <button
               onClick={handleDownload}
-              className="flex items-center gap-2 bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all"
+              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-6 py-3 font-semibold text-white/70 transition-all hover:border-white/40 hover:text-white"
             >
               <Download className="w-5 h-5" />
               Download PDF
@@ -157,15 +157,15 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl mb-6 p-2 flex gap-2 overflow-x-auto">
+        <div className="mb-6 flex gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-black/45 p-2 backdrop-blur-md">
           {['overview', 'career_path', 'action_plan', 'resources', 'questions'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap ${
                 activeTab === tab
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  ? 'bg-white text-black'
+                  : 'text-white/45 hover:bg-white/[0.08] hover:text-white'
               }`}
             >
               {tab.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
@@ -179,7 +179,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
             {/* Charts Grid */}
             <div className="grid md:grid-cols-2 gap-6">
               {/* Domain Scores Bar Chart */}
-              <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+              <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Domain Scores</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={radarData}>
@@ -199,7 +199,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
               </div>
 
               {/* Radar Chart */}
-              <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+              <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Skills Profile</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <RadarChart data={radarData}>
@@ -219,7 +219,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
 
               {/* Category Breakdown Pie Chart */}
               {categoryData.length > 0 && (
-                <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+                <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
                   <h3 className="text-xl font-bold text-white mb-4">Category Performance</h3>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
@@ -228,7 +228,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                         cx="50%"
                         cy="50%"
                         labelLine={true}
-                        label={({ cx, cy, midAngle, innerRadius, outerRadius, name, percentage }) => {
+                        label={({ cx, cy, midAngle, outerRadius, name, percentage }) => {
                           const RADIAN = Math.PI / 180;
                           const radius = outerRadius + 25;
                           const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -270,15 +270,15 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
               )}
 
               {/* Performance Summary */}
-              <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+              <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Performance Summary</h3>
                 {result.ai_insights?.overview && (
                   <div className="space-y-4">
                     <p className="text-gray-300 leading-relaxed">
                       {result.ai_insights.overview.summary}
                     </p>
-                    <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-4">
-                      <p className="text-indigo-300 font-semibold">
+                    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                      <p className="font-semibold text-white/70">
                         💡 Key Takeaway: {result.ai_insights.overview.key_takeaway}
                       </p>
                     </div>
@@ -290,7 +290,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
             {/* Strengths & Improvements */}
             {result.ai_insights && (
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+                <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
                   <h4 className="font-semibold text-green-400 mb-4 flex items-center gap-2 text-lg">
                     <CheckCircle className="w-6 h-6" />
                     Your Strengths
@@ -304,7 +304,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                   </ul>
                 </div>
 
-                <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+                <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
                   <h4 className="font-semibold text-orange-400 mb-4 flex items-center gap-2 text-lg">
                     <TrendingUp className="w-6 h-6" />
                     Areas for Improvement
@@ -324,7 +324,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
 
         {activeTab === 'career_path' && result.ai_insights?.career_paths && (
           <div className="space-y-6">
-            <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
               <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                 <MapPin className="w-6 h-6 text-blue-400" />
                 Career Recommendations
@@ -333,11 +333,11 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                 {result.ai_insights.career_paths.map((path, idx) => (
                   <div 
                     key={idx} 
-                    className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl p-6 hover:border-indigo-500/50 transition-all"
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-all hover:border-white/35 hover:bg-white/[0.07]"
                   >
                     <div className="flex items-center gap-2 mb-3">
                       <div className={`w-8 h-8 rounded-full ${
-                        idx === 0 ? 'bg-indigo-500' : idx === 1 ? 'bg-purple-500' : 'bg-pink-500'
+                        'bg-white text-black'
                       } flex items-center justify-center text-white font-bold`}>
                         {idx + 1}
                       </div>
@@ -352,7 +352,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                         href={path.learn_more_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors group"
+                        className="group inline-flex items-center gap-2 text-white/60 transition-colors hover:text-white text-sm font-semibold"
                       >
                         Learn More
                         <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -367,15 +367,15 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
 
         {activeTab === 'action_plan' && result.ai_insights?.action_plan && (
           <div className="space-y-6">
-            <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
               <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                <Calendar className="w-6 h-6 text-purple-400" />
+                <Calendar className="h-6 w-6 text-white/70" />
                 Your Action Plan
               </h3>
               <div className="space-y-6">
                 {result.ai_insights.action_plan.map((plan, idx) => (
-                  <div key={idx} className="border-l-4 border-purple-500 pl-6 py-2">
-                    <h4 className="text-xl font-bold text-purple-400 mb-4">{plan.phase}</h4>
+                  <div key={idx} className="border-l-2 border-white/50 py-2 pl-6">
+                    <h4 className="mb-4 text-xl font-semibold text-white">{plan.phase}</h4>
                     <ul className="space-y-3">
                       {plan.actions.map((action, actionIdx) => {
                         // Handle both string and object formats
@@ -384,7 +384,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                         
                         return (
                           <li key={actionIdx} className="flex items-start gap-3">
-                            <span className="text-purple-400 mt-1 flex-shrink-0">✓</span>
+                            <span className="mt-1 flex-shrink-0 text-white/60">✓</span>
                             <div className="flex-1">
                               <span className="text-gray-300">{actionText}</span>
                               {actionUrl && (
@@ -392,7 +392,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                                   href={actionUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 ml-2 text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors group"
+                                  className="group ml-2 inline-flex items-center gap-1 text-sm font-semibold text-white/60 transition-colors hover:text-white"
                                 >
                                   Get Started
                                   <ExternalLink className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
@@ -412,7 +412,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
 
         {activeTab === 'resources' && result.ai_insights?.learning_resources && (
           <div className="space-y-6">
-            <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
               <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                 <BookOpen className="w-6 h-6 text-green-400" />
                 Learning Resources
@@ -421,7 +421,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                 {result.ai_insights.learning_resources.map((resource, idx) => (
                   <div 
                     key={idx} 
-                    className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl p-6 hover:border-green-500/50 transition-all"
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-all hover:border-white/35 hover:bg-white/[0.07]"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-semibold">
@@ -451,14 +451,14 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
 
         {activeTab === 'questions' && result.question_results && (
           <div className="space-y-6">
-            <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-xl shadow-lg p-6">
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-lg backdrop-blur-md sm:p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-bold text-white flex items-center gap-2">
                   Question-by-Question Analysis
                 </h3>
                 <button
                   onClick={() => setShowQuestionDetails(!showQuestionDetails)}
-                  className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors"
+                  className="flex items-center gap-2 text-white/60 transition-colors hover:text-white"
                 >
                   {showQuestionDetails ? (
                     <>
@@ -480,8 +480,8 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                   onClick={() => setSelectedCategory('all')}
                   className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition-all ${
                     selectedCategory === 'all'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      ? 'bg-white text-black'
+                      : 'bg-white/[0.04] text-white/45 hover:bg-white/[0.08] hover:text-white'
                   }`}
                 >
                   All ({result.question_results.length})
@@ -492,8 +492,8 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                     onClick={() => setSelectedCategory(cat.name.toLowerCase())}
                     className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition-all ${
                       selectedCategory === cat.name.toLowerCase()
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                        ? 'bg-white text-black'
+                        : 'bg-white/[0.04] text-white/45 hover:bg-white/[0.08] hover:text-white'
                     }`}
                   >
                     {cat.name} ({cat.value}/{cat.total})
@@ -557,7 +557,7 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
                                       ? 'border-green-500 bg-green-500/10'
                                       : isUserAnswer
                                       ? 'border-red-500 bg-red-500/10'
-                                      : 'border-gray-700 bg-gray-800/50'
+                                      : 'border-white/10 bg-white/[0.03]'
                                   }`}
                                 >
                                   <div className="flex items-center gap-2">
@@ -604,13 +604,13 @@ const ResultPage = ({ result, onRetakeQuiz, onViewProfile }) => {
         <div className="flex gap-4 justify-center mt-8">
           <button
             onClick={onRetakeQuiz}
-            className="bg-gray-800 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-all border border-gray-700"
+            className="rounded-full border border-white/15 bg-white/[0.04] px-8 py-3 font-semibold text-white/70 transition-all hover:border-white/40 hover:text-white"
           >
             Retake Quiz
           </button>
           <button
             onClick={onViewProfile}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/50"
+            className="rounded-full bg-white px-8 py-3 font-semibold text-black transition-all hover:-translate-y-0.5 hover:bg-white/85"
           >
             View Profile
           </button>
