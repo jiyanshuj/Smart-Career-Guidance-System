@@ -1,6 +1,6 @@
 import React from 'react';
 import { SignInButton, useUser } from '@clerk/clerk-react';
-import { Code, Brain, Target, BookOpen, BarChart3, TrendingUp, ChevronsRight } from 'lucide-react';
+import { Code, Brain, Target, BookOpen, ChevronsRight } from 'lucide-react';
 
 // Pill CTA (outlined, with gradient rim like the reference)
 const PrimaryCTA = ({ children, onClick }) => (
@@ -74,23 +74,6 @@ const HomePage = ({ onStartQuiz }) => {
 
       {/* ===== CONTENT ===== */}
       <div className="mx-auto max-w-7xl px-4 pb-24">
-        {/* Features */}
-        <div className="mb-20 grid gap-6 md:grid-cols-3">
-          {[
-            [Target, 'Personalized Results', 'AI-powered insights tailored to your strengths, weaknesses and career potential.'],
-            [BarChart3, 'Comprehensive Analysis', 'Six areas covered: Programming, OS, DBMS, Networks, Aptitude and Verbal reasoning.'],
-            [TrendingUp, 'Track Progress', 'Monitor improvement over time and compare performance across attempts.'],
-          ].map(([Icon, title, desc]) => (
-            <div key={title} className={`${glass} group p-8 transition hover:border-white/25 hover:bg-white/[0.08]`}>
-              <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-white transition group-hover:border-white/40 group-hover:bg-white group-hover:text-black">
-                <Icon className="h-5 w-5" strokeWidth={1.8} />
-              </div>
-              <h3 className="mb-2 text-xl font-semibold text-white">{title}</h3>
-              <p className="text-gray-400">{desc}</p>
-            </div>
-          ))}
-        </div>
-
         {/* How it works */}
         <div id="how-it-works" className={`${glass} mb-20 p-12`}>
           <h2 className="mb-12 text-center text-4xl font-normal tracking-tight text-white">How it works</h2>
@@ -110,18 +93,6 @@ const HomePage = ({ onStartQuiz }) => {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Stats */}
-        <div className="mb-20 grid gap-6 text-center md:grid-cols-3">
-          {[['30+', 'Questions'], ['6', 'Skill domains'], ['45', 'Minutes']].map(([v, l]) => (
-            <div key={l} className={`${glass} p-8`}>
-              <div className="mb-1 bg-gradient-to-b from-white to-white/40 bg-clip-text text-5xl font-medium text-transparent">
-                {v}
-              </div>
-              <p className="text-gray-400">{l}</p>
-            </div>
-          ))}
         </div>
 
         {/* Final CTA */}
