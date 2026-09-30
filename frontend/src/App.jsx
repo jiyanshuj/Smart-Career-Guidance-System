@@ -22,10 +22,10 @@ const NavBar = ({ page, setPage, isSignedIn, scrolled }) => {
   return (
     <nav className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${scrolled ? 'px-3 pt-3' : 'px-0 pt-0'}`}>
       <div
-        className={`mx-auto grid max-w-[1500px] items-center transition-all duration-300 ${
+        className={`mx-auto flex max-w-[1500px] items-center gap-2 transition-all duration-300 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:gap-0 ${
           scrolled
-            ? 'grid-cols-[1fr_auto_1fr] rounded-[26px] border border-white/15 bg-black/80 px-6 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-md'
-            : 'grid-cols-[1fr_auto_1fr] border-b border-white/5 bg-transparent px-6 py-3.5 shadow-none backdrop-blur-none'
+            ? 'rounded-[22px] border border-white/15 bg-black/80 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-[26px] sm:px-6 sm:py-3.5'
+            : 'border-b border-white/5 bg-transparent px-2.5 py-3.5 shadow-none backdrop-blur-none sm:px-6'
         }`}
       >
         {/* Logo */}
@@ -33,7 +33,7 @@ const NavBar = ({ page, setPage, isSignedIn, scrolled }) => {
           onClick={() => setPage('home')}
           title="smart-career-guidance-system"
           aria-label="Smart Career Guidance System home"
-          className="group flex items-center gap-3 justify-self-start transition-opacity duration-200 hover:opacity-90"
+          className="group flex shrink-0 items-center gap-2 justify-self-start transition-opacity duration-200 hover:opacity-90 sm:gap-3"
         >
           <span className={`grid place-items-center bg-white text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition-transform duration-200 group-hover:rotate-6 ${
             scrolled ? 'h-7 w-7 rounded-md border border-white/20' : 'h-6 w-6 rounded-sm border border-white/15'
@@ -47,7 +47,7 @@ const NavBar = ({ page, setPage, isSignedIn, scrolled }) => {
         </button>
 
         {/* Centered links */}
-        <div className="flex items-center gap-7">
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-4 sm:gap-7">
           <button onClick={() => setPage('home')} className={link(page === 'home')}>Home</button>
           {isSignedIn && (
             <button onClick={() => setPage('profile')} className={link(page === 'profile')}>Profile</button>
@@ -55,21 +55,21 @@ const NavBar = ({ page, setPage, isSignedIn, scrolled }) => {
         </div>
 
         {/* Auth */}
-        <div className="flex items-center gap-3 justify-self-end">
+        <div className="flex shrink-0 items-center gap-1 justify-self-end sm:gap-3">
           {isSignedIn ? (
             <UserButton afterSignOutUrl="/" />
           ) : (
             <>
               <SignInButton mode="modal">
-                <button className="rounded-full px-3 py-2 text-[15px] font-medium text-white/70 transition-all duration-200 hover:text-white hover:bg-white/5">
+                <button className="whitespace-nowrap rounded-full px-1.5 py-2 text-[11px] font-medium text-white/70 transition-all duration-200 hover:bg-white/5 hover:text-white sm:px-3 sm:text-[15px]">
                   Sign In
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button className={`inline-flex items-center gap-2 rounded-full border text-white transition-all duration-200 hover:-translate-y-0.5 ${
+                <button className={`inline-flex whitespace-nowrap items-center gap-1 rounded-full border text-white transition-all duration-200 hover:-translate-y-0.5 sm:gap-2 ${
                   scrolled
-                    ? 'border-white/20 bg-white/5 px-5 py-2.5 text-[12px] uppercase tracking-[0.12em] hover:bg-white/10 hover:shadow-[0_0_14px_rgba(255,255,255,0.08)]'
-                    : 'border-white/20 bg-white/5 px-5 py-2.5 text-[12px] uppercase tracking-[0.12em] hover:bg-white/10 hover:shadow-[0_0_14px_rgba(255,255,255,0.08)]'
+                    ? 'border-white/20 bg-white/5 px-2.5 py-2 text-[9px] uppercase tracking-[0.08em] hover:bg-white/10 hover:shadow-[0_0_14px_rgba(255,255,255,0.08)] sm:px-5 sm:py-2.5 sm:text-[12px] sm:tracking-[0.12em]'
+                    : 'border-white/20 bg-white/5 px-2.5 py-2 text-[9px] uppercase tracking-[0.08em] hover:bg-white/10 hover:shadow-[0_0_14px_rgba(255,255,255,0.08)] sm:px-5 sm:py-2.5 sm:text-[12px] sm:tracking-[0.12em]'
                 }`}>
                   Get Started <ChevronsRight className="h-3.5 w-3.5" />
                 </button>
