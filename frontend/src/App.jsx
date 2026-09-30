@@ -9,7 +9,7 @@ import VortexBackground from './components/VortexBackground';
 import { ChevronsRight, Sparkles } from 'lucide-react';
 
 const CLERK_PUBLISHABLE_KEY = 'pk_test_Y29udGVudC1lbXUtMTguY2xlcmsuYWNjb3VudHMuZGV2JA';
-const API_BASE = 'https://smart-career-guidance-system-kjrp.onrender.com/api';
+const API_BASE = 'https://smart-career-guidance-system-thig.onrender.com/api';
 
 const NavBar = ({ page, setPage, isSignedIn, scrolled }) => {
   const link = (active) =>
