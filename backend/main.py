@@ -158,7 +158,7 @@ def get_current_user():
 def generate_quiz():
     """Generate quiz - SINGLE API call optimized for 2 RPM limit"""
     data = request.json or {}
-    difficulty = data.get('difficulty', 'moderate')
+    difficulty = normalize_difficulty(data.get('difficulty', 'moderate'))
     language = data.get('language', 'python')
 
     print(f"\n{'='*60}")
@@ -324,137 +324,276 @@ def health_check():
 
 # ==================== GEMINI AI FUNCTIONS ====================
 
-def generate_all_questions_optimized(difficulty, language, supports_oop):
-    """Generate all 30 questions in ONE call - optimized for gemini-2.0-flash-lite"""
-    
-    # Wait for rate limit
-    wait_for_rate_limit()
-    
-    model = genai.GenerativeModel('gemini-2.0-flash-lite')
-    
-    diff_map = {
-        'easy': 'easy',
-        'moderate': 'medium',
-        'hard': 'hard'
-    }
-    
-    oop_text = "Include 2 OOP questions." if supports_oop else ""
-    
-    # Compact prompt optimized for flash-lite
-    prompt = f"""Generate exactly 30 {diff_map[difficulty]} difficulty MCQs for technical placement test.
+import random
 
-CATEGORIES (5 questions each):
-• Operating Systems: processes, memory, scheduling
-• Database Management: SQL, normalization, transactions
-• Computer Networks: TCP/IP, protocols, routing
-• Aptitude: logic, math, reasoning
-• Verbal: grammar, comprehension
-• {language} Programming: syntax, algorithms, data structures {oop_text}
+QUESTION_CATEGORIES = ['os', 'dbms', 'networks', 'aptitude', 'verbal', 'programming']
+QUESTIONS_PER_CATEGORY = 5
 
-Return ONLY valid JSON array:
+VALID_DIFFICULTIES = ('easy', 'moderate', 'hard')
+
+
+def normalize_difficulty(difficulty):
+    """Normalize any incoming difficulty value to easy / moderate / hard"""
+    d = str(difficulty or 'moderate').strip().lower()
+    if d in ('medium', 'intermediate', 'mod'):
+        d = 'moderate'
+    if d not in VALID_DIFFICULTIES:
+        d = 'moderate'
+    return d
+
+
+# Strict, per-level definition that is injected into the Gemini prompt
+DIFFICULTY_PROFILES = {
+    'easy': {
+        'label': 'EASY (beginner / fresher level)',
+        'rules': (
+            "- Direct definition or recall questions; single concept; no multi-step thinking.\n"
+            "- Aptitude: one-step arithmetic (percentages, simple ratios, simple averages).\n"
+            "- Verbal: basic grammar, common synonyms/antonyms, simple everyday idioms.\n"
+            "- Programming: basic syntax, data types, loops, simple output questions.\n"
+            "- Wrong options must be clearly different from the correct one."
+        ),
+        'examples': (
+            "  os: \"Which of these is an operating system?\"\n"
+            "  aptitude: \"What is 25% of 200?\"\n"
+            "  programming: \"Which keyword is used to define a function?\""
+        ),
+    },
+    'moderate': {
+        'label': 'MODERATE (intermediate / campus placement level)',
+        'rules': (
+            "- Needs conceptual understanding and application, 2 reasoning steps at most.\n"
+            "- OS/DBMS/Networks: comparisons between concepts, normal forms, scheduling, protocols, SQL behaviour.\n"
+            "- Aptitude: work-time, profit-loss, probability, number series with 2 steps.\n"
+            "- Verbal: sentence correction, contextual vocabulary, idioms.\n"
+            "- Programming: time complexity, common data structures, output of short code, recursion.\n"
+            "- Wrong options must be plausible and close to the correct one."
+        ),
+        'examples': (
+            "  os: \"Which page replacement algorithm suffers from Belady's anomaly?\"\n"
+            "  aptitude: \"A can finish a job in 12 days and B in 18 days. How long together?\"\n"
+            "  programming: \"What is the worst-case time complexity of quicksort?\""
+        ),
+    },
+    'hard': {
+        'label': 'HARD (advanced / top-tier company interview level)',
+        'rules': (
+            "- Requires multi-step reasoning, calculation or edge-case analysis; NO simple definitions.\n"
+            "- OS/DBMS/Networks: numerical problems (EMAT, page-fault rate, subnetting, window sizes), "
+            "candidate keys / normal-form analysis, concurrency control, deadlock analysis, protocol internals.\n"
+            "- Aptitude: permutations/combinations, compound interest, mixtures, relative speed, algebraic identities.\n"
+            "- Verbal: advanced vocabulary, subtle grammar (conditionals, subjunctive), idioms from literature/history.\n"
+            "- Programming: advanced algorithms and data structures, amortized and space complexity, "
+            "tricky code-tracing and edge cases.\n"
+            "- All 4 options must be very close; common mistakes should be used as distractors."
+        ),
+        'examples': (
+            "  os: \"3 processes each need at most 2 units of a resource. Minimum units that guarantee no deadlock?\"\n"
+            "  aptitude: \"If x + 1/x = 3, what is x^2 + 1/x^2?\"\n"
+            "  programming: \"What is the time complexity of building a binary heap from n elements?\""
+        ),
+    },
+}
+
+
+def build_question_prompt(difficulty, language, supports_oop):
+    profile = DIFFICULTY_PROFILES[difficulty]
+    oop_text = " Include 2 OOP questions among the programming questions." if supports_oop else ""
+
+    return f"""You are creating a technical placement test. Difficulty level: {profile['label']}.
+
+Generate exactly 30 multiple choice questions. EVERY question must strictly match the {difficulty.upper()} level. Never mix in easier or harder questions.
+
+DIFFICULTY RULES FOR {difficulty.upper()}:
+{profile['rules']}
+
+CALIBRATION EXAMPLES OF {difficulty.upper()} QUESTIONS:
+{profile['examples']}
+
+CATEGORIES (exactly {QUESTIONS_PER_CATEGORY} questions each, use these exact category keys):
+- "os": Operating Systems (processes, memory, scheduling, deadlocks)
+- "dbms": Database Management (SQL, normalization, transactions, indexing)
+- "networks": Computer Networks (TCP/IP, protocols, routing, subnetting)
+- "aptitude": Quantitative aptitude, logic and reasoning
+- "verbal": Grammar, vocabulary, comprehension
+- "programming": {language} programming (syntax, algorithms, data structures).{oop_text}
+
+Return ONLY a valid JSON array in this format:
 [
   {{"question":"...","options":["...","...","...","..."],"correct_answer":0,"category":"os"}},
-  {{"question":"...","options":["...","...","...","..."],"correct_answer":1,"category":"dbms"}},
-  ...28 more
+  ...29 more
 ]
 
 Requirements:
-- Exactly 4 options per question
-- correct_answer must be 0, 1, 2, or 3
-- Keep questions concise (under 100 chars)
-- Keep options short (under 50 chars each)
-- NO markdown, NO explanations
-- Return pure JSON only"""
+- Exactly 4 options per question, only one correct
+- correct_answer must be 0, 1, 2, or 3 and the correct answer position must vary across questions
+- Questions under 150 chars, options under 60 chars each
+- No duplicate questions
+- NO markdown, NO explanations, pure JSON only"""
+
+
+def _parse_questions_json(text):
+    """Parse (and repair if truncated) the JSON array returned by Gemini"""
+    text = text.replace('```json', '').replace('```', '').strip()
+
+    # Trim anything before the first '[' / after the last ']'
+    start = text.find('[')
+    if start > 0:
+        text = text[start:]
+
+    if not text.endswith(']'):
+        last_close_brace = text.rfind('}')
+        if last_close_brace > 0:
+            text = text[:last_close_brace + 1] + ']'
+            print("🔧 Fixed truncated JSON")
 
     try:
-        print("🔄 Generating 30 questions with gemini-2.0-flash-lite...")
-        
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.9,
-                top_p=0.95,
-                max_output_tokens=8192,
-            )
-        )
-        
-        text = response.text.strip()
-        print(f"📦 Received {len(text)} chars")
-        
-        # Clean JSON
-        text = text.replace('```json', '').replace('```', '').strip()
-        
-        # Try to fix truncated JSON
-        if not text.endswith(']'):
-            # Find last complete question
-            last_close_brace = text.rfind('}')
-            if last_close_brace > 0:
-                text = text[:last_close_brace+1] + ']'
-                print("🔧 Fixed truncated JSON")
-        
-        # Parse JSON
-        try:
-            questions_data = json.loads(text)
-        except json.JSONDecodeError as e:
-            print(f"⚠️  JSON error at char {e.pos}, attempting repair...")
-            # Try to salvage partial JSON
-            for i in range(len(text)-1, max(0, len(text)-500), -1):
-                try:
-                    test_text = text[:i]
-                    if test_text.endswith('}'):
-                        test_text += ']'
-                    elif test_text.endswith(','):
-                        test_text = test_text[:-1] + ']'
-                    questions_data = json.loads(test_text)
-                    print(f"✓ Repaired JSON (salvaged {len(questions_data)} questions)")
-                    break
-                except:
-                    continue
-            else:
-                raise
-        
-        if not isinstance(questions_data, list):
-            raise ValueError(f"Expected array, got {type(questions_data)}")
-        
-        # Validate and format
-        valid_questions = []
-        category_count = {}
-        
-        for idx, q in enumerate(questions_data):
-            if not validate_question_structure(q):
-                print(f"⚠️  Q{idx+1} invalid")
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        print(f"⚠️  JSON error at char {e.pos}, attempting repair...")
+        for i in range(len(text) - 1, max(0, len(text) - 500), -1):
+            try:
+                test_text = text[:i]
+                if test_text.endswith('}'):
+                    test_text += ']'
+                elif test_text.endswith(','):
+                    test_text = test_text[:-1] + ']'
+                data = json.loads(test_text)
+                print(f"✓ Repaired JSON (salvaged {len(data)} questions)")
+                return data
+            except Exception:
                 continue
-            
-            cat = q['category']
-            category_count[cat] = category_count.get(cat, 0) + 1
-            
-            valid_questions.append({
-                'id': f"{cat}_{category_count[cat]}",
-                'question': str(q['question']).strip(),
-                'options': [str(opt).strip() for opt in q['options'][:4]],
-                'correct_answer': int(q['correct_answer']),
-                'category': cat,
-                'explanation': ''
-            })
-        
-        print(f"✅ Generated {len(valid_questions)} valid questions")
-        print(f"   Distribution: {category_count}")
-        
-        # Return what we have, fill rest with fallback if needed
-        if len(valid_questions) >= 25:
-            if len(valid_questions) < 30:
-                print(f"   Adding {30-len(valid_questions)} fallback questions")
-                fallback = generate_quality_fallback(language)
-                return (valid_questions + fallback)[:30]
-            return valid_questions[:30]
-        else:
-            print(f"⚠️  Only {len(valid_questions)} questions, using all fallback")
-            return generate_quality_fallback(language)
-            
-    except Exception as e:
-        print(f"❌ Generation failed: {e}")
-        print("   Using fallback questions")
-        return generate_quality_fallback(language)
+        raise
+
+
+def normalize_category(raw, language):
+    """Map whatever category label Gemini returned to one of our 6 keys"""
+    c = str(raw or '').strip().lower().replace('-', ' ').replace('_', ' ')
+    lang = str(language or '').strip().lower()
+    if not c:
+        return None
+    if c in QUESTION_CATEGORIES:
+        return c
+    if 'program' in c or 'coding' in c or c == lang or (lang and lang in c):
+        return 'programming'
+    if 'operating' in c or c == 'os':
+        return 'os'
+    if 'dbms' in c or 'database' in c or 'sql' in c:
+        return 'dbms'
+    if 'network' in c:
+        return 'networks'
+    if 'aptitude' in c or 'quant' in c or 'reasoning' in c or 'logic' in c:
+        return 'aptitude'
+    if 'verbal' in c or 'english' in c or 'grammar' in c:
+        return 'verbal'
+    return None
+
+
+def generate_all_questions_optimized(difficulty, language, supports_oop):
+    """Generate all 30 questions in ONE call, strictly following the chosen difficulty"""
+
+    difficulty = normalize_difficulty(difficulty)
+    prompt = build_question_prompt(difficulty, language, supports_oop)
+
+    valid_questions = []
+    max_attempts = 2
+
+    for attempt in range(1, max_attempts + 1):
+        wait_for_rate_limit()
+        model = genai.GenerativeModel('gemini-2.0-flash-lite')
+
+        try:
+            print(f"🔄 Generating 30 {difficulty.upper()} questions (attempt {attempt}/{max_attempts})...")
+
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.6,   # lower = follows the difficulty rules more strictly
+                    top_p=0.9,
+                    max_output_tokens=8192,
+                )
+            )
+
+            text = response.text.strip()
+            print(f"📦 Received {len(text)} chars")
+
+            questions_data = _parse_questions_json(text)
+            if not isinstance(questions_data, list):
+                raise ValueError(f"Expected array, got {type(questions_data)}")
+
+            valid_questions = []
+            seen_questions = set()
+            category_count = {}
+
+            for idx, q in enumerate(questions_data):
+                if not validate_question_structure(q):
+                    print(f"⚠️  Q{idx+1} invalid")
+                    continue
+
+                cat = normalize_category(q['category'], language)
+                if cat is None:
+                    print(f"⚠️  Q{idx+1} unknown category '{q['category']}'")
+                    continue
+
+                # keep max 5 per category and drop duplicates
+                if category_count.get(cat, 0) >= QUESTIONS_PER_CATEGORY:
+                    continue
+                key = str(q['question']).strip().lower()
+                if key in seen_questions:
+                    continue
+                seen_questions.add(key)
+
+                category_count[cat] = category_count.get(cat, 0) + 1
+                valid_questions.append({
+                    'id': f"{cat}_{category_count[cat]}",
+                    'question': str(q['question']).strip(),
+                    'options': [str(opt).strip() for opt in q['options'][:4]],
+                    'correct_answer': int(q['correct_answer']),
+                    'category': cat,
+                    'explanation': ''
+                })
+
+            print(f"✅ Generated {len(valid_questions)} valid {difficulty} questions")
+            print(f"   Distribution: {category_count}")
+
+            if len(valid_questions) >= 25:
+                break
+            print("⚠️  Not enough valid questions, retrying...")
+
+        except Exception as e:
+            print(f"❌ Generation failed (attempt {attempt}): {e}")
+            valid_questions = []
+
+    return _fill_with_fallback(valid_questions, difficulty, language)
+
+
+def _fill_with_fallback(valid_questions, difficulty, language):
+    """Make sure every category has exactly 5 questions, topping up with same-difficulty fallback"""
+    fallback = generate_quality_fallback(language, difficulty)
+
+    by_cat = {c: [] for c in QUESTION_CATEGORIES}
+    for q in valid_questions:
+        by_cat[q['category']].append(q)
+
+    # If Gemini gave almost nothing, use the full fallback set for this difficulty
+    if len(valid_questions) < 15:
+        print(f"⚠️  Only {len(valid_questions)} usable questions, using {difficulty} fallback set")
+        return fallback[:30]
+
+    final = []
+    for cat in QUESTION_CATEGORIES:
+        have = by_cat[cat][:QUESTIONS_PER_CATEGORY]
+        if len(have) < QUESTIONS_PER_CATEGORY:
+            extra = [q for q in fallback if q['category'] == cat]
+            have_text = {h['question'].lower() for h in have}
+            extra = [q for q in extra if q['question'].lower() not in have_text]
+            need = QUESTIONS_PER_CATEGORY - len(have)
+            print(f"   Adding {need} {difficulty} fallback question(s) for '{cat}'")
+            have = have + extra[:need]
+        final.extend(have)
+
+    return final[:30]
+
 
 def validate_question_structure(q):
     """Validate question has required fields and correct structure"""
@@ -462,147 +601,184 @@ def validate_question_structure(q):
         required = ['question', 'options', 'correct_answer', 'category']
         if not all(k in q for k in required):
             return False
-        
+
         if not isinstance(q['options'], list) or len(q['options']) != 4:
             return False
-        
+
         if q['correct_answer'] not in [0, 1, 2, 3]:
             return False
-        
+
         if not q['question'] or not all(q['options']):
             return False
-        
+
+        # options must be unique
+        if len({str(o).strip().lower() for o in q['options']}) != 4:
+            return False
+
         return True
-    except:
+    except Exception:
         return False
 
-def generate_quality_fallback(language):
-    """Generate high-quality fallback questions when API fails"""
-    
+
+# Fallback bank: (question, correct option, [3 wrong options]); '{lang}' is replaced with the language
+FALLBACK_BANK = {
+    'easy': {
+        'os': [
+            ("What is the primary purpose of an operating system?", "Manage hardware resources", ["Edit documents", "Browse internet", "Play games"]),
+            ("Which scheduling algorithm can cause starvation?", "Priority Scheduling", ["Round Robin", "FCFS", "Priority with aging"]),
+            ("What is a deadlock in OS?", "Circular wait for resources", ["Process termination", "Memory leak", "CPU idle state"]),
+            ("Virtual memory uses which storage?", "Hard disk", ["RAM only", "Cache only", "Registers"]),
+            ("What is a critical section?", "Code accessing shared resources", ["Error handling code", "Main function", "Loop structure"]),
+        ],
+        'dbms': [
+            ("What is normalization in databases?", "Removing redundancy", ["Adding indexes", "Backing up data", "Encrypting data"]),
+            ("Which SQL clause filters grouped data?", "HAVING", ["WHERE", "GROUP BY", "ORDER BY"]),
+            ("ACID properties ensure what?", "Transaction reliability", ["Fast queries", "Data encryption", "User authentication"]),
+            ("What is a foreign key?", "References primary key of another table", ["Primary key", "Unique constraint", "Index"]),
+            ("Which JOIN returns all rows from both tables?", "FULL OUTER JOIN", ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN"]),
+        ],
+        'networks': [
+            ("What layer is TCP in OSI model?", "Transport Layer", ["Network Layer", "Application Layer", "Data Link Layer"]),
+            ("Default HTTP port number is?", "80", ["443", "8080", "21"]),
+            ("What does DNS do?", "Converts domain names to IP", ["Encrypts data", "Routes packets", "Assigns IP addresses"]),
+            ("Which protocol is connectionless?", "UDP", ["TCP", "FTP", "HTTP"]),
+            ("What is subnet mask used for?", "Divide network into subnets", ["Encrypt traffic", "Authenticate users", "Cache data"]),
+        ],
+        'aptitude': [
+            ("If 20% of 150 is X, then X = ?", "30", ["25", "35", "40"]),
+            ("Next in series: 2, 6, 12, 20, ?", "30", ["28", "32", "26"]),
+            ("A train 100m long crosses a pole in 10 sec. Speed?", "10 m/s", ["100 m/s", "1 m/s", "50 m/s"]),
+            ("If A:B = 2:3 and B:C = 4:5, then A:C = ?", "8:15", ["2:5", "3:5", "4:15"]),
+            ("Average of 5 numbers is 20. If one number is 30, average of rest?", "17.5", ["20", "22.5", "15"]),
+        ],
+        'verbal': [
+            ("Choose correct: He ___ to school every day.", "goes", ["go", "going", "gone"]),
+            ("Synonym of 'Abundant':", "Plentiful", ["Scarce", "Limited", "Rare"]),
+            ("Antonym of 'Ancient':", "Modern", ["Old", "Historic", "Traditional"]),
+            ("Identify error: 'She don't like coffee.'", "don't should be doesn't", ["No error", "like should be likes", "coffee should be coffees"]),
+            ("'Break the ice' means:", "Start conversation", ["Destroy something", "Cool down", "Make ice cubes"]),
+        ],
+        'programming': [
+            ("What is the time complexity of binary search in {lang}?", "O(log n)", ["O(n)", "O(n²)", "O(1)"]),
+            ("Which data structure uses LIFO?", "Stack", ["Queue", "Array", "Tree"]),
+            ("What does 'return' keyword do in {lang}?", "Exits function with value", ["Loops back", "Throws error", "Prints output"]),
+            ("Array indexing in {lang} starts from?", "0", ["1", "-1", "Depends on declaration"]),
+            ("What is recursion in {lang}?", "Function calling itself", ["Loop structure", "Variable declaration", "Error handling"]),
+        ],
+    },
+    'moderate': {
+        'os': [
+            ("Which is NOT a necessary condition for deadlock?", "Preemption of resources", ["Mutual exclusion", "Hold and wait", "Circular wait"]),
+            ("Which page replacement algorithm suffers from Belady's anomaly?", "FIFO", ["LRU", "Optimal", "MRU"]),
+            ("A semaphore initialized to 1 and used for mutual exclusion is called?", "Binary semaphore", ["Counting semaphore", "Spinlock", "Monitor"]),
+            ("What is saved and restored during a context switch?", "Process state stored in the PCB", ["Contents of the hard disk", "The entire RAM", "All files opened by the user"]),
+            ("Which non-preemptive algorithm gives minimum average waiting time for known burst times?", "SJF", ["FCFS", "Round Robin", "Priority"]),
+        ],
+        'dbms': [
+            ("Which normal form removes partial dependencies?", "2NF", ["1NF", "3NF", "BCNF"]),
+            ("Which SQL keyword filters rows BEFORE grouping?", "WHERE", ["HAVING", "ORDER BY", "DISTINCT"]),
+            ("Which ACID property ensures committed data survives a crash?", "Durability", ["Atomicity", "Consistency", "Isolation"]),
+            ("Which index structure is the default in most RDBMS?", "B+ tree", ["Bitmap", "Hash", "Full-text"]),
+            ("Which isolation level prevents dirty reads but allows non-repeatable reads?", "Read Committed", ["Read Uncommitted", "Repeatable Read", "Serializable"]),
+        ],
+        'networks': [
+            ("Which protocol resolves an IP address to a MAC address?", "ARP", ["RARP", "DNS", "DHCP"]),
+            ("How many bits are there in an IPv6 address?", "128", ["32", "64", "256"]),
+            ("TCP connection establishment uses which mechanism?", "Three-way handshake", ["Two-way handshake", "Four-way handshake", "Token passing"]),
+            ("Which device operates at Layer 3 of the OSI model?", "Router", ["Hub", "Bridge", "Repeater"]),
+            ("Which port does HTTPS use by default?", "443", ["80", "22", "25"]),
+        ],
+        'aptitude': [
+            ("A can do a job in 12 days, B in 18 days. Working together they finish in?", "7.2 days", ["15 days", "6 days", "8 days"]),
+            ("A price rises 20% and then falls 20%. Net change?", "4% decrease", ["No change", "4% increase", "2% decrease"]),
+            ("Next in series: 3, 6, 11, 18, 27, ?", "38", ["36", "40", "35"]),
+            ("Probability of getting a sum of 7 with two dice?", "1/6", ["1/12", "7/36", "1/9"]),
+            ("Simple interest on ₹5000 at 8% p.a. for 3 years?", "₹1200", ["₹1500", "₹400", "₹1000"]),
+        ],
+        'verbal': [
+            ("Choose the grammatically correct sentence:", "Each of the students has submitted the form.", ["Each of the students have submitted the form.", "Each of the student has submitted the form.", "Each of the students are submitting the form."]),
+            ("Synonym of 'Meticulous':", "Painstaking", ["Careless", "Hasty", "Indifferent"]),
+            ("Antonym of 'Benevolent':", "Malevolent", ["Generous", "Kind", "Charitable"]),
+            ("'Burn the midnight oil' means:", "Work late into the night", ["Waste fuel", "Start a fire", "Cook at night"]),
+            ("Fill in the blank: She is senior ___ me.", "to", ["than", "from", "with"]),
+        ],
+        'programming': [
+            ("What is the time complexity of searching in a balanced BST (in {lang})?", "O(log n)", ["O(n)", "O(1)", "O(n log n)"]),
+            ("Which data structure is used for BFS traversal?", "Queue", ["Stack", "Heap", "Hash table"]),
+            ("What is a hash collision?", "Two different keys produce the same hash index", ["A key is missing from the table", "The table has run out of memory", "Two values are identical"]),
+            ("Which statement about recursion in {lang} is true?", "Every recursive function needs a base case", ["Recursion is always faster than loops", "Recursion uses no extra memory", "The base case is optional"]),
+            ("Worst-case time complexity of quicksort?", "O(n²)", ["O(n log n)", "O(n)", "O(log n)"]),
+        ],
+    },
+    'hard': {
+        'os': [
+            ("3 processes each need at most 2 units of a resource. Minimum total units that guarantee no deadlock?", "4", ["3", "5", "6"]),
+            ("Memory access = 100 ns, page-fault service = 10 ms. Max page-fault rate for EAT ≤ 110 ns?", "≈ 1 in 1,000,000", ["1 in 10,000", "1 in 100,000", "1 in 100"]),
+            ("Priority inversion is best solved by?", "Priority inheritance", ["Round robin", "Increasing the time quantum", "Paging"]),
+            ("Banker's algorithm is used for?", "Deadlock avoidance", ["Deadlock detection", "Deadlock prevention", "Deadlock recovery"]),
+            ("TLB hit ratio 90%, TLB access 10 ns, memory access 100 ns (single-level paging). EMAT?", "120 ns", ["110 ns", "130 ns", "150 ns"]),
+        ],
+        'dbms': [
+            ("R(A,B,C,D) with FDs A→B, B→C, C→D. Which is the candidate key?", "{A}", ["{B}", "{C,D}", "{B,C}"]),
+            ("R(A,B,C) with FDs A→B, B→C and key A. Highest normal form satisfied?", "2NF", ["3NF", "BCNF", "1NF"]),
+            ("Which concurrency control protocol is deadlock-free?", "Timestamp ordering", ["Basic two-phase locking", "Strict two-phase locking", "Conservative lock upgrade"]),
+            ("Which anomaly can still occur at Repeatable Read in the SQL standard?", "Phantom reads", ["Dirty reads", "Non-repeatable reads", "Dirty writes"]),
+            ("R(A,B,C) has A as its only candidate key. Number of superkeys?", "4", ["3", "7", "8"]),
+        ],
+        'networks': [
+            ("Usable host addresses in a /26 subnet?", "62", ["64", "30", "126"]),
+            ("In TCP slow start, cwnd grows exponentially until it reaches?", "ssthresh", ["The RTT value", "Zero", "The MTU of the link"]),
+            ("Which routing protocol uses Dijkstra's algorithm?", "OSPF", ["RIP", "BGP", "EIGRP"]),
+            ("Stop-and-wait efficiency with a = Tp/Tt?", "1/(1+2a)", ["1/(1+a)", "1/(2+a)", "2a/(1+2a)"]),
+            ("Maximum sender window size in Go-Back-N with 3-bit sequence numbers?", "7", ["8", "4", "3"]),
+        ],
+        'aptitude': [
+            ("Trains 150 m and 100 m run in opposite directions at 60 and 40 km/h. Time to cross each other?", "9 s", ["10 s", "12 s", "15 s"]),
+            ("Number of distinct arrangements of the letters of 'LEVEL'?", "30", ["60", "120", "15"]),
+            ("40 L mixture of milk:water = 3:1. Water to add to make the ratio 3:2?", "10 L", ["5 L", "15 L", "20 L"]),
+            ("Compound interest on ₹8000 at 10% p.a. for 2 years (annual compounding)?", "₹1680", ["₹1600", "₹1800", "₹1480"]),
+            ("If x + 1/x = 3, then x² + 1/x² = ?", "7", ["9", "5", "11"]),
+        ],
+        'verbal': [
+            ("Choose the best word: His ___ remarks offended everyone.", "disparaging", ["laudatory", "ephemeral", "frugal"]),
+            ("Synonym of 'Ubiquitous':", "Omnipresent", ["Rare", "Hidden", "Ancient"]),
+            ("Antonym of 'Ephemeral':", "Enduring", ["Brief", "Fleeting", "Temporary"]),
+            ("Choose the correct sentence:", "Had I known, I would have called you.", ["If I would have known, I would have called you.", "Had I knew, I would have called you.", "If I had known, I will have called you."]),
+            ("'A Pyrrhic victory' means:", "A victory won at too great a cost", ["A decisive and cheap victory", "A surprise victory", "A narrow defeat"]),
+        ],
+        'programming': [
+            ("Time complexity of building a binary heap from n elements in {lang}?", "O(n)", ["O(n log n)", "O(log n)", "O(n²)"]),
+            ("Which algorithm finds shortest paths with negative edge weights (no negative cycle)?", "Bellman-Ford", ["Dijkstra", "Prim", "Kruskal"]),
+            ("Worst-case recursion-stack space of DFS on a graph with V vertices?", "O(V)", ["O(1)", "O(log V)", "O(V²)"]),
+            ("Which technique solves problems with overlapping subproblems and optimal substructure?", "Dynamic programming", ["Greedy algorithms", "Binary search", "Hashing"]),
+            ("Amortized time per push in a dynamic array that doubles its capacity?", "O(1)", ["O(n)", "O(log n)", "O(n log n)"]),
+        ],
+    },
+}
+
+
+def generate_quality_fallback(language, difficulty='moderate'):
+    """Fallback questions that follow the selected difficulty (used only when the API fails)"""
+    difficulty = normalize_difficulty(difficulty)
+    bank = FALLBACK_BANK[difficulty]
     questions = []
-    
-    # OS Questions
-    os_questions = [
-        ("What is the primary purpose of an operating system?", 
-         ["Manage hardware resources", "Edit documents", "Browse internet", "Play games"], 0),
-        ("Which scheduling algorithm can cause starvation?",
-         ["Priority Scheduling", "Round Robin", "FCFS", "SJF with aging"], 0),
-        ("What is a deadlock in OS?",
-         ["Circular wait for resources", "Process termination", "Memory leak", "CPU idle state"], 0),
-        ("Virtual memory uses which storage?",
-         ["Hard disk", "RAM only", "Cache only", "Registers"], 0),
-        ("What is a critical section?",
-         ["Code accessing shared resources", "Error handling code", "Main function", "Loop structure"], 0),
-    ]
-    
-    for i, (q, opts, ans) in enumerate(os_questions):
-        questions.append({
-            'id': f'os_{i}', 'question': q, 'options': opts,
-            'correct_answer': ans, 'category': 'os', 'explanation': ''
-        })
-    
-    # DBMS Questions
-    dbms_questions = [
-        ("What is normalization in databases?",
-         ["Removing redundancy", "Adding indexes", "Backing up data", "Encrypting data"], 0),
-        ("Which SQL clause filters grouped data?",
-         ["HAVING", "WHERE", "GROUP BY", "ORDER BY"], 0),
-        ("ACID properties ensure what?",
-         ["Transaction reliability", "Fast queries", "Data encryption", "User authentication"], 0),
-        ("What is a foreign key?",
-         ["References primary key of another table", "Primary key", "Unique constraint", "Index"], 0),
-        ("Which JOIN returns all rows from both tables?",
-         ["FULL OUTER JOIN", "INNER JOIN", "LEFT JOIN", "RIGHT JOIN"], 0),
-    ]
-    
-    for i, (q, opts, ans) in enumerate(dbms_questions):
-        questions.append({
-            'id': f'dbms_{i}', 'question': q, 'options': opts,
-            'correct_answer': ans, 'category': 'dbms', 'explanation': ''
-        })
-    
-    # Networks Questions
-    net_questions = [
-        ("What layer is TCP in OSI model?",
-         ["Transport Layer", "Network Layer", "Application Layer", "Data Link Layer"], 0),
-        ("Default HTTP port number is?",
-         ["80", "443", "8080", "21"], 0),
-        ("What does DNS do?",
-         ["Converts domain names to IP", "Encrypts data", "Routes packets", "Assigns IP addresses"], 0),
-        ("Which protocol is connectionless?",
-         ["UDP", "TCP", "FTP", "HTTP"], 0),
-        ("What is subnet mask used for?",
-         ["Divide network into subnets", "Encrypt traffic", "Authenticate users", "Cache data"], 0),
-    ]
-    
-    for i, (q, opts, ans) in enumerate(net_questions):
-        questions.append({
-            'id': f'networks_{i}', 'question': q, 'options': opts,
-            'correct_answer': ans, 'category': 'networks', 'explanation': ''
-        })
-    
-    # Aptitude Questions
-    apt_questions = [
-        ("If 20% of 150 is X, then X = ?",
-         ["30", "25", "35", "40"], 0),
-        ("Next in series: 2, 6, 12, 20, ?",
-         ["30", "28", "32", "26"], 0),
-        ("A train 100m long crosses a pole in 10 sec. Speed?",
-         ["10 m/s", "100 m/s", "1 m/s", "50 m/s"], 0),
-        ("If A:B = 2:3 and B:C = 4:5, then A:C = ?",
-         ["8:15", "2:5", "3:5", "4:15"], 0),
-        ("Average of 5 numbers is 20. If one number is 30, average of rest?",
-         ["17.5", "20", "22.5", "15"], 0),
-    ]
-    
-    for i, (q, opts, ans) in enumerate(apt_questions):
-        questions.append({
-            'id': f'aptitude_{i}', 'question': q, 'options': opts,
-            'correct_answer': ans, 'category': 'aptitude', 'explanation': ''
-        })
-    
-    # Verbal Questions
-    verbal_questions = [
-        ("Choose correct: He ___ to school every day.",
-         ["goes", "go", "going", "gone"], 0),
-        ("Synonym of 'Abundant':",
-         ["Plentiful", "Scarce", "Limited", "Rare"], 0),
-        ("Antonym of 'Ancient':",
-         ["Modern", "Old", "Historic", "Traditional"], 0),
-        ("Identify error: 'She don't like coffee.'",
-         ["don't should be doesn't", "No error", "like should be likes", "coffee should be coffees"], 0),
-        ("'Break the ice' means:",
-         ["Start conversation", "Destroy something", "Cool down", "Make ice cubes"], 0),
-    ]
-    
-    for i, (q, opts, ans) in enumerate(verbal_questions):
-        questions.append({
-            'id': f'verbal_{i}', 'question': q, 'options': opts,
-            'correct_answer': ans, 'category': 'verbal', 'explanation': ''
-        })
-    
-    # Programming Questions
-    prog_questions = [
-        (f"What is the time complexity of binary search in {language}?",
-         ["O(log n)", "O(n)", "O(n²)", "O(1)"], 0),
-        (f"Which data structure uses LIFO?",
-         ["Stack", "Queue", "Array", "Tree"], 0),
-        (f"What does 'return' keyword do in {language}?",
-         ["Exits function with value", "Loops back", "Throws error", "Prints output"], 0),
-        (f"Array indexing in {language} starts from?",
-         ["0", "1", "-1", "Depends on declaration"], 0),
-        (f"What is recursion in {language}?",
-         ["Function calling itself", "Loop structure", "Variable declaration", "Error handling"], 0),
-    ]
-    
-    for i, (q, opts, ans) in enumerate(prog_questions):
-        questions.append({
-            'id': f'programming_{i}', 'question': q, 'options': opts,
-            'correct_answer': ans, 'category': 'programming', 'explanation': ''
-        })
-    
-    print(f"📚 Using {len(questions)} fallback questions")
+
+    for cat in QUESTION_CATEGORIES:
+        for i, (q, correct, wrongs) in enumerate(bank[cat]):
+            options = [correct] + list(wrongs)
+            random.shuffle(options)  # correct answer is no longer always option A
+            questions.append({
+                'id': f'{cat}_{i}',
+                'question': q.replace('{lang}', str(language)),
+                'options': options,
+                'correct_answer': options.index(correct),
+                'category': cat,
+                'explanation': ''
+            })
+
+    print(f"📚 Using {len(questions)} {difficulty} fallback questions")
     return questions
+
 
 def evaluate_quiz_with_gemini(quiz_id, answers, user_id):
     """Evaluate quiz with detailed question-by-question analysis"""
@@ -1096,4 +1272,4 @@ def get_result_details(result_id):
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    app.run(debug=os.getenv('FLASK_ENV') == 'development', port=port, host='0.0.0.0') 
+    app.run(debug=os.getenv('FLASK_ENV') == 'development', port=port, host='0.0.0.0')
